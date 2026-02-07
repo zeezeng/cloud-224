@@ -9,10 +9,10 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>mars-app-api</artifactId>
+    <artifactId>mars-web-api</artifactId>
     <packaging>jar</packaging>
-    <name>Mars App API</name>
-    <description>App接口层 - 小程序/App控制器</description>
+    <name>Mars Web API</name>
+    <description>PC端接口层 - Web前台控制器</description>
 
     <dependencies>
         <!-- 认证模块 -->
@@ -20,25 +20,11 @@
             <groupId>com.mars</groupId>
             <artifactId>mars-auth</artifactId>
         </dependency>
-        <!-- 短信 -->
-        <dependency>
-            <groupId>com.mars</groupId>
-            <artifactId>mars-sms</artifactId>
-        </dependency>
-        <!-- 业务模块 -->
+        <!-- 系统模块 -->
         <dependency>
             <groupId>com.mars</groupId>
             <artifactId>mars-system</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.mars</groupId>
-            <artifactId>mars-mall</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.mars</groupId>
-            <artifactId>mars-wechat</artifactId>
-        </dependency>
-
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
