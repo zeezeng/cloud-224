@@ -63,6 +63,7 @@ export default defineConfig(({ command, mode }) => {
     VITE_APP_PROXY_ENABLE,
     VITE_APP_PROXY_PREFIX,
     VITE_COPY_NATIVE_RES_ENABLE,
+    VITE_ENABLE_VISUALIZER,
   } = env
   const { WECHAT_DEVTOOLS_CLI_PATH } = localEnv
   console.log('环境变量 env -> ', env)
@@ -91,7 +92,7 @@ export default defineConfig(({ command, mode }) => {
       }),
       // UniOptimization 插件需要 page.json 文件，故应在 UniPages 插件之后执行
       UniOptimization({
-        enable: isMpWeixin,
+        enable: isMpWeixin && mode === 'production',
         dts: {
           base: 'src/types',
         },
@@ -134,12 +135,13 @@ export default defineConfig(({ command, mode }) => {
             .replace('%VITE_APP_TITLE%', VITE_APP_TITLE)
         },
       },
-      // 打包分析插件，h5 + 生产环境才弹出
+      // 打包分析插件，默认关闭；需要分析时在 env 中设置 VITE_ENABLE_VISUALIZER=true
       UNI_PLATFORM === 'h5'
       && mode === 'production'
+      && VITE_ENABLE_VISUALIZER === 'true'
       && visualizer({
         filename: './node_modules/.cache/visualizer/stats.html',
-        open: true,
+        open: false,
         gzipSize: true,
         brotliSize: true,
       }),

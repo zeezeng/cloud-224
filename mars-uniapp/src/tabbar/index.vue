@@ -88,20 +88,21 @@ onMounted(() => {
   })
 })
 // #endif
-const activeColor = 'var(--wot-color-theme, #1890ff)'
-const inactiveColor = '#666'
+const activeColor = 'var(--ephone-primary, #ff4fa3)'
+const inactiveColor = 'rgba(255,255,255,0.42)'
 function getColorByIndex(index: number) {
   return tabbarStore.curIdx === index ? activeColor : inactiveColor
 }
 </script>
 
 <template>
-  <view v-if="customTabbarEnable" class="h-50px pb-safe">
-    <view class="border-and-fixed bg-white" @touchmove.stop.prevent>
-      <view class="h-50px flex items-center">
+  <view v-if="customTabbarEnable" class="h-62px pb-safe">
+    <view class="border-and-fixed" @touchmove.stop.prevent>
+      <view class="tabbar-inner">
         <view
           v-for="(item, index) in tabbarList" :key="index"
-          class="flex flex-1 flex-col items-center justify-center"
+          class="tabbar-cell"
+          :class="{ 'tabbar-cell-active': tabbarStore.curIdx === index }"
           :style="{ color: getColorByIndex(index) }"
           @click="handleClick(index)"
         >
@@ -111,7 +112,7 @@ function getColorByIndex(index: number) {
               <TabbarItem :item="item" :index="index" class="text-center" is-bulge />
             </view>
           </view>
-          <TabbarItem v-else :item="item" :index="index" class="relative px-3 text-center" />
+          <TabbarItem v-else :item="item" :index="index" class="relative text-center" />
         </view>
       </view>
 
@@ -127,9 +128,39 @@ function getColorByIndex(index: number) {
   left: 0;
   right: 0;
   z-index: 1000;
-  border-top: 1px solid #eee;
   box-sizing: border-box;
+  overflow: hidden;
+  border-top: 1rpx solid rgba(255, 78, 160, 0.18);
+  border-radius: 30rpx 30rpx 0 0;
+  background:
+    linear-gradient(180deg, rgba(255, 72, 162, 0.14), rgba(0, 0, 0, 0.94)),
+    #050507;
+  box-shadow: 0 -14rpx 44rpx rgba(255, 58, 151, 0.16);
 }
+
+.tabbar-inner {
+  display: flex;
+  align-items: center;
+  min-height: 124rpx;
+  padding: 6rpx 20rpx 0;
+}
+
+.tabbar-cell {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 96rpx;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.tabbar-cell-active {
+  transform: translateY(-2rpx);
+  text-shadow: 0 0 20rpx rgba(255, 78, 160, 0.8);
+}
+
 // 中间鼓包的样式
 .bulge {
   position: absolute;

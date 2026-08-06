@@ -18,7 +18,7 @@ function getImageByIndex(index: number, item: CustomTabBarItem) {
 </script>
 
 <template>
-  <view class="flex flex-col items-center justify-center">
+  <view class="tabbar-item">
     <template v-if="item.iconType === 'uiLib'">
       <!-- TODO: 以下内容请根据选择的UI库自行替换 -->
       <!-- 如：<wd-icon name="home" /> (https://wot-design-uni.cn/component/icon.html) -->
@@ -27,12 +27,12 @@ function getImageByIndex(index: number, item: CustomTabBarItem) {
       <!-- <wd-icon :name="item.icon" size="20" /> -->
     </template>
     <template v-if="item.iconType === 'unocss' || item.iconType === 'iconfont'">
-      <view :class="[item.icon, isBulge ? 'text-80px' : 'text-20px']" />
+      <view :class="[item.icon, isBulge ? 'text-80px' : 'tabbar-icon']" />
     </template>
     <template v-if="item.iconType === 'image'">
       <image :src="getImageByIndex(index, item)" mode="scaleToFill" :class="isBulge ? 'h-80px w-80px' : 'h-24px w-24px'" />
     </template>
-    <view v-if="!isBulge" class="mt-2px text-12px">
+    <view v-if="!isBulge" class="tabbar-text">
       {{ item.text }}
     </view>
     <!-- 角标显示 -->
@@ -48,3 +48,26 @@ function getImageByIndex(index: number, item: CustomTabBarItem) {
     </view>
   </view>
 </template>
+
+<style scoped lang="scss">
+.tabbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 88rpx;
+  min-height: 88rpx;
+}
+
+.tabbar-icon {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.tabbar-text {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  font-weight: 650;
+  line-height: 1;
+}
+</style>

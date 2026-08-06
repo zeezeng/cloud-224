@@ -1,53 +1,143 @@
-<script lang="ts" setup>
+<script setup lang="ts">
+import { ephoneAnchors, homeQuickActions, rankingTypeTabs } from '@/data/ephone'
+import { formatCompactNumber } from '@/utils/ephone'
+import CapsuleTabs from '@/components/ephone/CapsuleTabs.vue'
+import EphonePanel from '@/components/ephone/EphonePanel.vue'
+import EphonePage from '@/components/ephone/EphonePage.vue'
+import HeroBanner from '@/components/ephone/HeroBanner.vue'
+import QuickGrid from '@/components/ephone/QuickGrid.vue'
+import RankBadge from '@/components/ephone/RankBadge.vue'
+
 defineOptions({
   name: 'Home',
 })
+
 definePage({
-  // 使用 type: "home" 属性设置首页，其他页面不需要设置，默认为page
   type: 'home',
   style: {
-    // 'custom' 表示开启自定义导航栏，默认 'default'
     navigationStyle: 'custom',
     navigationBarTitleText: '首页',
   },
 })
 
-const description = ref(
-  'unibest 是一个集成了多种工具和技术的 uniapp 开发模板，由 uniapp + Vue3 + Ts + Vite5 + UnoCss + VSCode 构建，模板具有代码提示、自动格式化、统一配置、代码片段等功能，并内置了许多常用的基本组件和基本功能，让你编写 uniapp 拥有 best 体验。',
-)
-console.log('index/index 首页打印了')
-
-onLoad(() => {
-  console.log('测试 uni API 自动引入: onLoad')
-})
+const topAnchors = ephoneAnchors.slice(0, 3)
 </script>
 
 <template>
-  <view class="bg-white px-4 pt-safe">
-    <view class="mt-10">
-      <image src="/static/logo.svg" alt="" class="mx-auto block h-28 w-28" />
-    </view>
-    <view class="mt-4 text-center text-4xl text-[#d14328]">
-      unibest
-    </view>
-    <view class="mb-8 mt-2 text-center text-2xl">
-      最好用的 uniapp 开发模板
+  <EphonePage title="云224" subtitle="向阳而生 · 热爱同行 · 闪闪发光">
+    <HeroBanner
+      title="闪耀舞台"
+      subtitle="团结 · 奋进 · 梦想"
+      image="/static/ephone/home-stage.png"
+      alt="闪耀舞台皇冠横幅"
+      image-only
+    />
+
+    <view class="home-notice">
+      <view class="i-carbon-volume-up notice-icon" />
+      <text class="notice-title">公告</text>
+      <text class="notice-copy">平台数据每 10 分钟更新一次</text>
     </view>
 
-    <view class="m-auto mb-2 max-w-100 text-justify indent text-4">
-      {{ description }}
-    </view>
-    <view class="mt-4 text-center">
-      作者：
-      <text class="text-green-500">
-        菲鸽
-      </text>
-    </view>
-    <view class="mt-4 text-center">
-      官网地址：
-      <text class="text-green-500">
-        https://unibest.tech
-      </text>
-    </view>
-  </view>
+    <EphonePanel title="主播排行" icon="i-carbon-trophy-filled" action="更多排行">
+      <CapsuleTabs :items="rankingTypeTabs" compact />
+      <view class="home-rank-list">
+        <view v-for="(anchor, index) in topAnchors" :key="anchor.id" class="home-rank-row">
+          <RankBadge :rank="index + 1" />
+          <image class="home-rank-avatar" :src="anchor.avatar" :alt="anchor.name" mode="aspectFill" />
+          <view class="home-rank-name">
+            {{ anchor.name }}
+          </view>
+          <view class="home-rank-value">
+            <view class="i-carbon-fire" />
+            {{ formatCompactNumber(anchor.monthlyFlow) }}
+          </view>
+        </view>
+      </view>
+    </EphonePanel>
+
+    <QuickGrid :items="homeQuickActions" />
+  </EphonePage>
 </template>
+
+<style scoped lang="scss">
+.home-notice {
+  display: flex;
+  align-items: center;
+  min-height: 70rpx;
+  margin-top: 24rpx;
+  padding: 0 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.notice-icon,
+.notice-title {
+  color: var(--ephone-primary);
+}
+
+.notice-icon {
+  font-size: 34rpx;
+}
+
+.notice-title {
+  margin-left: 10rpx;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.notice-copy {
+  flex: 1;
+  margin-left: 26rpx;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 26rpx;
+}
+
+.home-rank-list {
+  margin-top: 14rpx;
+  overflow: hidden;
+  border-radius: 24rpx;
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.home-rank-row {
+  display: grid;
+  grid-template-columns: 52rpx 66rpx minmax(0, 1fr) 190rpx;
+  gap: 14rpx;
+  align-items: center;
+  min-height: 92rpx;
+  padding: 14rpx 18rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.06);
+}
+
+.home-rank-row:last-child {
+  border-bottom: 0;
+}
+
+.home-rank-name {
+  overflow: hidden;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-rank-value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6rpx;
+  color: var(--ephone-primary);
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.home-rank-avatar {
+  width: 62rpx;
+  height: 62rpx;
+  border: 3rpx solid rgba(255, 82, 166, 0.62);
+  border-radius: 50%;
+  box-shadow: 0 0 20rpx rgba(255, 82, 166, 0.24);
+}
+</style>

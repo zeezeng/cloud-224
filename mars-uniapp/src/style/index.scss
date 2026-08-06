@@ -12,10 +12,25 @@
 :root,
 page {
   // 修改按主题色
-  // --wot-color-theme: #37c2bc;
+  --wot-color-theme: #ff4fa3;
+  --ephone-primary: #ff4fa3;
+  --ephone-primary-soft: #ff8ac8;
+  --ephone-text: #ffffff;
+  --ephone-muted: rgba(255, 255, 255, 0.62);
+  --ephone-card: rgba(18, 18, 24, 0.86);
+  --ephone-border: rgba(255, 82, 166, 0.36);
+  --ephone-bg-solid: #000000;
+  --ephone-bg-scene:
+    radial-gradient(ellipse at 74% 20%, rgba(255, 76, 166, 0.12), transparent 34%),
+    radial-gradient(ellipse at 44% 76%, rgba(255, 76, 166, 0.08), transparent 30%),
+    linear-gradient(180deg, #000000 0%, #030204 46%, #000000 100%);
 
   // 修改按钮背景色
   // --wot-button-primary-bg-color: green;
+}
+
+page {
+  background: var(--ephone-bg-solid);
 }
 
 /*

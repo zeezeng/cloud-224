@@ -1,6 +1,8 @@
 import type { TabBar } from '@uni-helper/vite-plugin-uni-pages'
 import type { CustomTabBarItem, NativeTabBarItem } from './types'
 
+const tabPagePath = (path: string) => path as CustomTabBarItem['pagePath']
+
 /**
  * tabbar 选择的策略，更详细的介绍见 tabbar.md 文件
  * 0: 'NO_TABBAR' `无 tabbar`
@@ -27,14 +29,32 @@ export const nativeTabbarList: NativeTabBarItem[] = [
   {
     iconPath: 'static/tabbar/home.png',
     selectedIconPath: 'static/tabbar/homeHL.png',
-    pagePath: 'pages/index/index',
+    pagePath: tabPagePath('pages/index/index'),
     text: '首页',
   },
   {
     iconPath: 'static/tabbar/personal.png',
     selectedIconPath: 'static/tabbar/personalHL.png',
-    pagePath: 'pages/me/me',
-    text: '个人',
+    pagePath: tabPagePath('pages/anchors/anchors'),
+    text: '主播',
+  },
+  {
+    iconPath: 'static/tabbar/example.png',
+    selectedIconPath: 'static/tabbar/exampleHL.png',
+    pagePath: tabPagePath('pages/ranking/ranking'),
+    text: '排行',
+  },
+  {
+    iconPath: 'static/tabbar/example.png',
+    selectedIconPath: 'static/tabbar/exampleHL.png',
+    pagePath: tabPagePath('pages/enjoy/enjoy'),
+    text: '乐享值',
+  },
+  {
+    iconPath: 'static/tabbar/example.png',
+    selectedIconPath: 'static/tabbar/exampleHL.png',
+    pagePath: tabPagePath('pages/vault/vault'),
+    text: '金库',
   },
 ]
 
@@ -43,70 +63,34 @@ export const nativeTabbarList: NativeTabBarItem[] = [
 export const customTabbarList: CustomTabBarItem[] = [
   {
     text: '首页',
-    pagePath: 'pages/index/index',
-    // 注意 unocss 图标需要如下处理：（二选一）
-    // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
-    // 2）配置到 unocss.config.ts 的 safelist 中
+    pagePath: tabPagePath('pages/index/index'),
     iconType: 'unocss',
     icon: 'i-carbon-home',
-    // badge: 'dot',
-  },
-  // 鼓包配置示例（2025-12-31）
-  // 中间鼓包tabbarItem配置：通常是扫描按钮、发布按钮、更多按钮等，点击触发业务逻辑
-  // {
-  //   pagePath: 'pages/me/me',
-  //   text: '我的',
-  //   // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
-  //   // 2）配置到 unocss.config.ts 的 safelist 中
-  //   iconType: 'image',
-  //   icon: '/static/tabbar/scan.png',
-  //   isBulge: true,
-  // },
-  {
-    pagePath: 'pages/about/about',
-    text: '关于',
-    // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
-    // 2）配置到 unocss.config.ts 的 safelist 中
-    iconType: 'unocss',
-    icon: 'i-carbon-menu',
-    // badge: 10,
-    roles: ['admin'],
   },
   {
-    pagePath: 'pages/me/me',
-    text: '我的',
-    // 1）在fg-tabbar.vue页面上引入一下并注释掉（见tabbar/index.vue代码第2行）
-    // 2）配置到 unocss.config.ts 的 safelist 中
+    text: '主播',
+    pagePath: tabPagePath('pages/anchors/anchors'),
     iconType: 'unocss',
-    icon: 'i-carbon-user',
-    // badge: 10,
+    icon: 'i-carbon-user-avatar',
   },
-
-  // 其他类型演示
-  // 1、uiLib
-  // {
-  //   pagePath: 'pages/index/index',
-  //   text: '首页',
-  //   iconType: 'uiLib',
-  //   icon: 'home',
-  // },
-  // 2、iconfont
-  // {
-  //   pagePath: 'pages/index/index',
-  //   text: '首页',
-  //   // 注意 iconfont 图标需要额外加上 'iconfont'，如下
-  //   iconType: 'iconfont',
-  //   icon: 'iconfont icon-my',
-  // },
-  // 3、image
-  // {
-  //   pagePath: 'pages/index/index',
-  //   text: '首页',
-  //   // 使用 ‘image’时，需要配置 icon + iconActive 2张图片
-  //   iconType: 'image',
-  //   icon: '/static/tabbar/home.png',
-  //   iconActive: '/static/tabbar/homeHL.png',
-  // },
+  {
+    text: '排行',
+    pagePath: tabPagePath('pages/ranking/ranking'),
+    iconType: 'unocss',
+    icon: 'i-carbon-trophy',
+  },
+  {
+    text: '乐享值',
+    pagePath: tabPagePath('pages/enjoy/enjoy'),
+    iconType: 'unocss',
+    icon: 'i-carbon-star',
+  },
+  {
+    text: '金库',
+    pagePath: tabPagePath('pages/vault/vault'),
+    iconType: 'unocss',
+    icon: 'i-carbon-box',
+  },
 ]
 
 /**
@@ -134,11 +118,11 @@ export const tabbarList = customTabbarEnable ? customTabbarList : nativeTabbarLi
 const _tabbar: TabBar = {
   // 只有微信小程序支持 custom。App 和 H5 不生效
   custom: selectedTabbarStrategy === TABBAR_STRATEGY_MAP.CUSTOM_TABBAR,
-  color: '#999999',
-  selectedColor: '#018d71',
-  backgroundColor: '#F8F8F8',
+  color: '#7c7c82',
+  selectedColor: '#ff5bad',
+  backgroundColor: '#000000',
   borderStyle: 'black',
-  height: '50px',
+  height: '58px',
   fontSize: '10px',
   iconWidth: '24px',
   spacing: '3px',
