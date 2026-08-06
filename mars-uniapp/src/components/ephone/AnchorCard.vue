@@ -50,10 +50,10 @@ defineProps<{
   min-height: 176rpx;
   margin-top: 18rpx;
   padding: 20rpx 22rpx;
-  border: 1rpx solid rgba(255, 71, 151, 0.42);
+  border: 1rpx solid rgba(255, 255, 255, 0.09);
   border-radius: 28rpx;
-  background: linear-gradient(120deg, rgba(255, 58, 151, 0.16), rgba(14, 14, 24, 0.94));
-  box-shadow: inset 0 0 34rpx rgba(255, 69, 158, 0.08), 0 0 30rpx rgba(255, 58, 151, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
 }
 
 .anchor-left {
@@ -67,7 +67,7 @@ defineProps<{
   display: flex;
   align-items: center;
   gap: 10rpx;
-  color: var(--ephone-primary);
+  color: var(--ephone-primary-soft);
   font-size: 24rpx;
   font-weight: 700;
 }
@@ -81,7 +81,7 @@ defineProps<{
   height: 14rpx;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 16rpx currentColor;
+  box-shadow: none;
 }
 
 .anchor-middle {
@@ -101,7 +101,7 @@ defineProps<{
 }
 
 .anchor-room text {
-  color: var(--ephone-primary-soft);
+  color: rgba(255, 255, 255, 0.84);
 }
 
 .anchor-tag {
@@ -111,8 +111,9 @@ defineProps<{
   margin-top: 12rpx;
   padding: 0 18rpx;
   border-radius: 12rpx;
-  background: rgba(255, 105, 180, 0.54);
-  color: #08080c;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 22rpx;
   font-weight: 800;
 }
@@ -136,9 +137,9 @@ defineProps<{
   min-width: 160rpx;
   height: 54rpx;
   padding: 0 22rpx;
-  border: 1rpx solid rgba(255, 83, 170, 0.64);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
   border-radius: 999rpx;
-  background: rgba(255, 70, 158, 0.18);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--ephone-primary-soft);
   font-size: 24rpx;
   font-weight: 800;

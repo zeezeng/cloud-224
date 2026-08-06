@@ -2,11 +2,12 @@
 import { ephoneAnchors, homeQuickActions, rankingTypeTabs } from '@/data/ephone'
 import { formatCompactNumber } from '@/utils/ephone'
 import CapsuleTabs from '@/components/ephone/CapsuleTabs.vue'
-import EphonePanel from '@/components/ephone/EphonePanel.vue'
-import EphonePage from '@/components/ephone/EphonePage.vue'
+import YunPanel from '@/components/ephone/YunPanel.vue'
+import YunPage from '@/components/ephone/YunPage.vue'
 import HeroBanner from '@/components/ephone/HeroBanner.vue'
 import QuickGrid from '@/components/ephone/QuickGrid.vue'
 import RankBadge from '@/components/ephone/RankBadge.vue'
+import AnchorAvatar from '@/components/ephone/AnchorAvatar.vue'
 
 defineOptions({
   name: 'Home',
@@ -24,7 +25,7 @@ const topAnchors = ephoneAnchors.slice(0, 3)
 </script>
 
 <template>
-  <EphonePage title="云224" subtitle="向阳而生 · 热爱同行 · 闪闪发光">
+  <YunPage title="云224" subtitle="向阳而生 · 热爱同行 · 闪闪发光">
     <HeroBanner
       title="闪耀舞台"
       subtitle="团结 · 奋进 · 梦想"
@@ -39,12 +40,18 @@ const topAnchors = ephoneAnchors.slice(0, 3)
       <text class="notice-copy">平台数据每 10 分钟更新一次</text>
     </view>
 
-    <EphonePanel title="主播排行" icon="i-carbon-trophy-filled" action="更多排行">
+    <YunPanel title="主播排行" icon="i-carbon-trophy-filled" action="更多排行">
       <CapsuleTabs :items="rankingTypeTabs" compact />
       <view class="home-rank-list">
         <view v-for="(anchor, index) in topAnchors" :key="anchor.id" class="home-rank-row">
           <RankBadge :rank="index + 1" />
-          <image class="home-rank-avatar" :src="anchor.avatar" :alt="anchor.name" mode="aspectFill" />
+          <AnchorAvatar
+            class="home-rank-avatar"
+            :src="anchor.avatar"
+            :name="anchor.name"
+            :show-pulse="false"
+            size="sm"
+          />
           <view class="home-rank-name">
             {{ anchor.name }}
           </view>
@@ -54,10 +61,10 @@ const topAnchors = ephoneAnchors.slice(0, 3)
           </view>
         </view>
       </view>
-    </EphonePanel>
+    </YunPanel>
 
     <QuickGrid :items="homeQuickActions" />
-  </EphonePage>
+  </YunPage>
 </template>
 
 <style scoped lang="scss">
@@ -68,12 +75,12 @@ const topAnchors = ephoneAnchors.slice(0, 3)
   margin-top: 24rpx;
   padding: 0 24rpx;
   border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .notice-icon,
 .notice-title {
-  color: var(--ephone-primary);
+  color: var(--ephone-primary-soft);
 }
 
 .notice-icon {
@@ -97,7 +104,7 @@ const topAnchors = ephoneAnchors.slice(0, 3)
   margin-top: 14rpx;
   overflow: hidden;
   border-radius: 24rpx;
-  background: rgba(0, 0, 0, 0.26);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .home-rank-row {
@@ -128,7 +135,7 @@ const topAnchors = ephoneAnchors.slice(0, 3)
   align-items: center;
   justify-content: flex-end;
   gap: 6rpx;
-  color: var(--ephone-primary);
+  color: var(--ephone-primary-soft);
   font-size: 26rpx;
   font-weight: 900;
 }
@@ -136,8 +143,5 @@ const topAnchors = ephoneAnchors.slice(0, 3)
 .home-rank-avatar {
   width: 62rpx;
   height: 62rpx;
-  border: 3rpx solid rgba(255, 82, 166, 0.62);
-  border-radius: 50%;
-  box-shadow: 0 0 20rpx rgba(255, 82, 166, 0.24);
 }
 </style>

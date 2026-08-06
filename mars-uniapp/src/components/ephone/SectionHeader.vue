@@ -36,7 +36,7 @@ defineProps<{
 }
 
 .section-icon {
-  color: var(--ephone-primary);
+  color: var(--ephone-primary-soft);
   font-size: 34rpx;
 }
 

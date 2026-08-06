@@ -2,7 +2,7 @@
 import { anchorFilters, ephoneAnchors } from '@/data/ephone'
 import AnchorCard from '@/components/ephone/AnchorCard.vue'
 import CapsuleTabs from '@/components/ephone/CapsuleTabs.vue'
-import EphonePage from '@/components/ephone/EphonePage.vue'
+import YunPage from '@/components/ephone/YunPage.vue'
 
 defineOptions({
   name: 'Anchors',
@@ -17,7 +17,7 @@ definePage({
 </script>
 
 <template>
-  <EphonePage title="主播资料" subtitle="看见努力 · 记录成长">
+  <YunPage title="主播资料" subtitle="看见努力 · 记录成长">
     <CapsuleTabs :items="anchorFilters" />
     <AnchorCard
       v-for="(anchor, index) in ephoneAnchors"
@@ -25,5 +25,5 @@ definePage({
       :anchor="anchor"
       :rank="index + 1"
     />
-  </EphonePage>
+  </YunPage>
 </template>

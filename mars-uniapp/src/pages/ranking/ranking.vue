@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { rankingRecords } from '@/data/ephone'
-import EphonePage from '@/components/ephone/EphonePage.vue'
+import YunPage from '@/components/ephone/YunPage.vue'
 import PodiumBoard from '@/components/ephone/PodiumBoard.vue'
 import RankingList from '@/components/ephone/RankingList.vue'
 
@@ -17,8 +17,8 @@ definePage({
 </script>
 
 <template>
-  <EphonePage title="主播排行" subtitle="每一份热爱都值得被看见">
+  <YunPage title="主播排行" subtitle="每一份热爱都值得被看见">
     <PodiumBoard :records="rankingRecords" />
     <RankingList :records="rankingRecords.slice(3, 8)" value-label="" show-trend :start-rank="4" />
-  </EphonePage>
+  </YunPage>
 </template>

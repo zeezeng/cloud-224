@@ -88,7 +88,7 @@ onMounted(() => {
   })
 })
 // #endif
-const activeColor = 'var(--ephone-primary, #ff4fa3)'
+const activeColor = 'var(--ephone-primary-soft, #f2b6cc)'
 const inactiveColor = 'rgba(255,255,255,0.42)'
 function getColorByIndex(index: number) {
   return tabbarStore.curIdx === index ? activeColor : inactiveColor
@@ -130,12 +130,10 @@ function getColorByIndex(index: number) {
   z-index: 1000;
   box-sizing: border-box;
   overflow: hidden;
-  border-top: 1rpx solid rgba(255, 78, 160, 0.18);
+  border-top: 1rpx solid rgba(255, 255, 255, 0.08);
   border-radius: 30rpx 30rpx 0 0;
-  background:
-    linear-gradient(180deg, rgba(255, 72, 162, 0.14), rgba(0, 0, 0, 0.94)),
-    #050507;
-  box-shadow: 0 -14rpx 44rpx rgba(255, 58, 151, 0.16);
+  background: rgba(0, 0, 0, 0.96);
+  box-shadow: none;
 }
 
 .tabbar-inner {
@@ -158,7 +156,7 @@ function getColorByIndex(index: number) {
 
 .tabbar-cell-active {
   transform: translateY(-2rpx);
-  text-shadow: 0 0 20rpx rgba(255, 78, 160, 0.8);
+  text-shadow: none;
 }
 
 // 中间鼓包的样式

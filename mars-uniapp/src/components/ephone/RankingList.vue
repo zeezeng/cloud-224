@@ -95,7 +95,7 @@ withDefaults(defineProps<{
 }
 
 .ranking-trend {
-  color: #ff58a7;
+  color: var(--ephone-primary-soft);
   font-size: 28rpx;
 }
 
@@ -148,7 +148,7 @@ withDefaults(defineProps<{
 }
 
 .ranking-list-enjoy :deep(.stat-main) {
-  color: #ff65b6;
+  color: var(--ephone-primary-soft);
   font-size: 36rpx;
   text-shadow: none;
 }

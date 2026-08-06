@@ -21,10 +21,10 @@ defineProps<{
 .ephone-panel {
   margin-top: 28rpx;
   padding: 22rpx 24rpx 18rpx;
-  border: 1rpx solid rgba(255, 79, 163, 0.26);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
   border-radius: 28rpx;
-  background: linear-gradient(150deg, rgba(255, 64, 154, 0.12), rgba(12, 14, 20, 0.92));
-  box-shadow: inset 0 0 32rpx rgba(255, 68, 158, 0.09), 0 0 26rpx rgba(255, 68, 158, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
 }
 
 .ephone-panel-body :deep(.capsule-tabs) {

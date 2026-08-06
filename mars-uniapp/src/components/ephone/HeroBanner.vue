@@ -32,10 +32,10 @@ withDefaults(defineProps<{
   min-height: 246rpx;
   margin-top: 26rpx;
   overflow: hidden;
-  border: 1rpx solid rgba(255, 86, 174, 0.48);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
   border-radius: 28rpx;
-  background: linear-gradient(135deg, rgba(255, 52, 151, 0.22), rgba(10, 10, 18, 0.92));
-  box-shadow: inset 0 0 44rpx rgba(255, 72, 162, 0.14), 0 0 34rpx rgba(255, 58, 151, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
 }
 
 .hero-banner-image-only {
@@ -54,7 +54,7 @@ withDefaults(defineProps<{
   font-size: 42rpx;
   font-weight: 900;
   line-height: 1.2;
-  text-shadow: 0 0 20rpx rgba(255, 59, 150, 0.75);
+  text-shadow: none;
 }
 
 .hero-subtitle {

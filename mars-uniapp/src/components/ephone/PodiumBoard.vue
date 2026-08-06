@@ -64,17 +64,17 @@ const podiumItems = computed(() => {
   justify-content: center;
   min-height: 268rpx;
   padding: 24rpx 14rpx 22rpx;
-  border: 1rpx solid rgba(255, 88, 167, 0.34);
+  border: 1rpx solid rgba(255, 255, 255, 0.09);
   border-radius: 24rpx;
-  background: linear-gradient(180deg, rgba(255, 72, 162, 0.18), rgba(255, 255, 255, 0.04));
-  box-shadow: inset 0 0 34rpx rgba(255, 68, 158, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
 }
 
 .podium-card-first {
   min-height: 332rpx;
-  border-color: rgba(255, 86, 174, 0.72);
-  background: linear-gradient(180deg, rgba(255, 72, 162, 0.28), rgba(255, 255, 255, 0.06));
-  box-shadow: 0 0 34rpx rgba(255, 72, 162, 0.34), inset 0 0 42rpx rgba(255, 70, 160, 0.12);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
   transform: translateY(-18rpx);
 }
 

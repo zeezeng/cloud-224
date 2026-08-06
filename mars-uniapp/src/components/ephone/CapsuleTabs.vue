@@ -46,26 +46,26 @@ withDefaults(defineProps<{
   min-width: 140rpx;
   min-height: 64rpx;
   padding: 0 28rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
   border-radius: 999rpx;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  background: rgba(255, 255, 255, 0.055);
   color: rgba(255, 255, 255, 0.78);
   font-size: 28rpx;
   font-weight: 600;
 }
 
 .capsule-tab-active {
-  border-color: rgba(255, 91, 174, 0.68);
-  background: linear-gradient(135deg, #ff66b7, #f33491);
-  box-shadow: 0 10rpx 28rpx rgba(255, 57, 151, 0.34);
-  color: #fff;
+  border-color: rgba(242, 182, 204, 0.24);
+  background: rgba(242, 182, 204, 0.1);
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.94);
 }
 
 .capsule-tabs-compact {
   gap: 0;
   padding: 8rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .capsule-tabs-compact .capsule-tab {

@@ -23,22 +23,22 @@ const tone = computed(() => getRankTone(props.rank))
   width: 54rpx;
   height: 60rpx;
   clip-path: polygon(50% 0, 94% 22%, 94% 78%, 50% 100%, 6% 78%, 6% 22%);
-  color: #fff;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 26rpx;
   font-weight: 900;
 }
 
 .rank-badge-gold {
-  background: linear-gradient(160deg, #ffd86a, #ff3b9a);
-  box-shadow: 0 0 24rpx rgba(255, 204, 86, 0.42);
+  background: rgba(242, 182, 204, 0.22);
+  box-shadow: none;
 }
 
 .rank-badge-purple {
-  background: linear-gradient(160deg, #b08cff, #7a5cff);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .rank-badge-coral {
-  background: linear-gradient(160deg, #ff9d78, #ff6048);
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .rank-badge-dark {

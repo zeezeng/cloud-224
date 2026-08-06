@@ -32,7 +32,7 @@ onMounted(() => {
   <view class="ephone-page">
     <view class="ephone-glow ephone-glow-left" />
     <view class="ephone-glow ephone-glow-right" />
-    <view class="ephone-content">
+    <view class="ephone-content" :class="{ 'ephone-content-with-image': heroImage }">
       <view class="ephone-heading" :class="{ 'ephone-heading-with-image': heroImage }" :style="navbarStyle">
         <view class="ephone-heading-copy">
           <view class="ephone-title">
@@ -72,14 +72,20 @@ onMounted(() => {
   max-width: 960rpx;
   min-height: 100vh;
   margin: 0 auto;
-  padding: 0 40rpx 180rpx;
+  --ephone-page-content-top: 228rpx;
+  padding: var(--ephone-page-content-top) 40rpx 180rpx;
+}
+
+.ephone-content-with-image {
+  --ephone-page-content-top: 372rpx;
+  padding-top: 372rpx;
 }
 
 .ephone-glow {
   position: fixed;
   pointer-events: none;
-  filter: blur(28rpx);
-  opacity: 0.72;
+  filter: blur(34rpx);
+  opacity: 0.5;
 }
 
 .ephone-glow-left {
@@ -87,7 +93,7 @@ onMounted(() => {
   left: -160rpx;
   width: 260rpx;
   height: 520rpx;
-  background: rgba(255, 76, 166, 0.08);
+  background: rgba(233, 138, 182, 0.055);
 }
 
 .ephone-glow-right {
@@ -95,19 +101,28 @@ onMounted(() => {
   right: -240rpx;
   width: 440rpx;
   height: 440rpx;
-  background: rgba(255, 76, 166, 0.1);
+  background: rgba(233, 138, 182, 0.065);
 }
 
 .ephone-heading {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 800;
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
+  width: 100%;
+  max-width: 960rpx;
   min-height: 204rpx;
+  padding-left: 40rpx;
   padding-top: var(--ephone-nav-top, calc(env(safe-area-inset-top) + 64rpx));
-  padding-right: var(--ephone-nav-right-space, 0);
+  padding-right: calc(var(--ephone-nav-right-space, 0rpx) + 40rpx);
   padding-bottom: 28rpx;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.96) 0%, rgba(0, 0, 0, 0.86) 76%, rgba(0, 0, 0, 0) 100%);
+  transform: translateX(-50%);
+  backdrop-filter: blur(18rpx);
 }
 
 .ephone-heading-copy {
@@ -118,7 +133,7 @@ onMounted(() => {
 .ephone-heading-with-image {
   gap: 22rpx;
   padding-top: var(--ephone-hero-top, calc(env(safe-area-inset-top) + 104rpx));
-  padding-right: 0;
+  padding-right: 40rpx;
 }
 
 .ephone-heading-with-image .ephone-heading-copy {
@@ -126,21 +141,21 @@ onMounted(() => {
 }
 
 .ephone-title {
-  color: #fff;
-  font-size: 58rpx;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 46rpx;
   font-weight: 900;
-  line-height: 1.08;
-  text-shadow: 0 0 20rpx rgba(255, 61, 153, 0.62);
+  line-height: 1.12;
+  text-shadow: none;
 }
 
 .ephone-title::first-letter {
-  color: var(--ephone-primary-soft);
+  color: inherit;
 }
 
 .ephone-subtitle {
-  margin-top: 14rpx;
+  margin-top: 10rpx;
   color: var(--ephone-muted);
-  font-size: 28rpx;
+  font-size: 24rpx;
   line-height: 1.35;
 }
 
@@ -149,7 +164,7 @@ onMounted(() => {
 }
 
 .ephone-heading-with-image .ephone-subtitle {
-  font-size: 26rpx;
+  font-size: 23rpx;
 }
 
 .ephone-heading-image {

@@ -111,10 +111,8 @@ onMounted(syncNavLayout)
   padding: 0;
   border: 1rpx solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.26), transparent 34%),
-    rgba(10, 9, 14, 0.34);
-  box-shadow: inset 0 0 18rpx rgba(255, 255, 255, 0.08), 0 12rpx 30rpx rgba(0, 0, 0, 0.24);
+  background: rgba(10, 9, 14, 0.34);
+  box-shadow: none;
   pointer-events: auto;
 }
 
@@ -134,8 +132,8 @@ onMounted(syncNavLayout)
   width: 54rpx;
   height: 54rpx;
   border-radius: 50%;
-  background: rgba(255, 76, 166, 0.12);
-  box-shadow: inset 0 0 16rpx rgba(255, 76, 166, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 
 .ephone-nav-back-icon {
@@ -158,7 +156,7 @@ onMounted(syncNavLayout)
   font-weight: 850;
   letter-spacing: 0;
   text-overflow: ellipsis;
-  text-shadow: 0 0 18rpx rgba(255, 76, 166, 0.32);
+  text-shadow: none;
   white-space: nowrap;
   pointer-events: none;
 }

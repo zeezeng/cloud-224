@@ -1,20 +1,34 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   src: string
   name: string
   crown?: boolean
   showPulse?: boolean
   size?: 'sm' | 'md' | 'lg'
+  ringColor?: string
+  scale?: number
 }>(), {
   crown: false,
   showPulse: true,
   size: 'md',
+  ringColor: 'rgba(255, 255, 255, 0.16)',
+  scale: 1.32,
 })
+
+const avatarStyle = computed<Record<string, string>>(() => ({
+  '--anchor-avatar-ring': props.ringColor,
+}))
+
+const imageStyle = computed<Record<string, string>>(() => ({
+  transform: `scale(${props.scale})`,
+}))
 </script>
 
 <template>
-  <view class="anchor-avatar" :class="`anchor-avatar-${size}`">
-    <image class="anchor-avatar-img" :src="src" :alt="name" mode="aspectFill" />
+  <view class="anchor-avatar" :class="`anchor-avatar-${size}`" :style="avatarStyle">
+    <view class="anchor-avatar-frame">
+      <image class="anchor-avatar-img" :src="src" :alt="name" mode="aspectFill" :style="imageStyle" />
+    </view>
     <view v-if="crown" class="anchor-crown">
       <view class="i-carbon-trophy-filled" />
     </view>
@@ -29,7 +43,8 @@ withDefaults(defineProps<{
   position: relative;
   flex: 0 0 auto;
   border-radius: 50%;
-  box-shadow: 0 0 28rpx rgba(255, 67, 151, 0.42);
+  --anchor-avatar-ring: rgba(255, 255, 255, 0.16);
+  box-shadow: none;
 }
 
 .anchor-avatar-sm {
@@ -47,23 +62,32 @@ withDefaults(defineProps<{
   height: 144rpx;
 }
 
-.anchor-avatar-img {
+.anchor-avatar-frame {
   box-sizing: border-box;
   display: block;
   width: 100%;
   height: 100%;
-  border: 3rpx solid rgba(255, 101, 178, 0.62);
+  overflow: hidden;
+  border: 3rpx solid var(--anchor-avatar-ring);
   border-radius: 50%;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.anchor-avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
 }
 
 .anchor-crown {
   position: absolute;
   top: -32rpx;
   left: 50%;
-  color: #ffd35c;
+  color: #e8c46a;
   font-size: 52rpx;
   transform: translateX(-50%);
-  text-shadow: 0 0 16rpx rgba(255, 211, 92, 0.7);
+  text-shadow: none;
 }
 
 .anchor-pulse {
@@ -76,8 +100,9 @@ withDefaults(defineProps<{
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ff79be, #f83d98);
-  color: #fff;
+  border: 1rpx solid rgba(255, 255, 255, 0.16);
+  background: rgba(242, 182, 204, 0.2);
+  color: rgba(255, 255, 255, 0.92);
   font-size: 26rpx;
 }
 </style>

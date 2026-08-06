@@ -35,9 +35,9 @@ defineProps<{
   justify-content: center;
   overflow: hidden;
   min-height: 164rpx;
-  border: 1rpx solid rgba(255, 67, 151, 0.16);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
   border-radius: 22rpx;
-  background: linear-gradient(180deg, rgba(255, 72, 162, 0.16), rgba(255, 72, 162, 0.05));
+  background: rgba(255, 255, 255, 0.038);
 }
 
 .quick-visual {
@@ -45,9 +45,10 @@ defineProps<{
   align-items: center;
   justify-content: center;
   height: 88rpx;
-  color: var(--quick-color);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 58rpx;
-  text-shadow: 0 0 24rpx var(--quick-color);
+  opacity: 0.86;
+  text-shadow: none;
 }
 
 .quick-title {

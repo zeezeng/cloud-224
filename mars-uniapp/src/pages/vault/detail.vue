@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { vaultRecords } from '@/data/ephone'
-import { formatMoney, formatSignedMoney } from '@/utils/ephone'
+import type { EphoneVaultRecord } from '@/data/ephone'
+import { getVaultRecordDetail, getVaultRecordLogPage, VAULT_DETAIL_LOG_SIZE } from '@/api/vault'
+import BackTopButton from '@/components/ephone/BackTopButton.vue'
 import AnchorAvatar from '@/components/ephone/AnchorAvatar.vue'
-import EphoneTransparentNav from '@/components/ephone/EphoneTransparentNav.vue'
+import EphoneListStatus from '@/components/ephone/EphoneListStatus.vue'
+import YunTransparentNav from '@/components/ephone/YunTransparentNav.vue'
+import { formatFetchTime, formatIntegerMoney, formatSignedIntegerMoney } from '@/utils/ephone'
 
 defineOptions({
   name: 'VaultDetail',
@@ -11,33 +14,159 @@ defineOptions({
 definePage({
   style: {
     navigationStyle: 'custom',
+    enablePullDownRefresh: true,
+    onReachBottomDistance: 120,
     backgroundColor: '#000000',
   },
 })
 
-const vaultId = ref(vaultRecords[0]?.id || 1)
+const vaultId = ref('')
 const navStyle = ref<Record<string, string>>({})
+const record = ref<EphoneVaultRecord | null>(null)
+const vaultCard = ref('')
+const logsPage = ref(1)
+const logsTotal = ref(0)
+const logsHasMore = ref(true)
+const loading = ref(false)
+const refreshing = ref(false)
+const loadingMore = ref(false)
+const loaded = ref(false)
+const loadFailed = ref(false)
+const loadMoreError = ref('')
+const showBackTop = ref(false)
+const fetchedAt = ref('')
+
+let loadGeneration = 0
 
 onLoad((query) => {
-  const id = Number(query?.id)
-  if (Number.isFinite(id)) {
+  const id = String(query?.id || '').trim()
+  if (id) {
     vaultId.value = id
+    loadVaultDetail({ reset: true })
   }
-})
-
-const record = computed(() => {
-  return vaultRecords.find(item => item.id === vaultId.value) || vaultRecords[0]
 })
 
 function handleNavLayout(style: Record<string, string>) {
   navStyle.value = style
 }
+
+async function loadVaultDetail({ reset = false } = {}) {
+  if (!vaultId.value) {
+    loadFailed.value = true
+    return
+  }
+
+  if ((loading.value || refreshing.value || loadingMore.value) && !reset) {
+    return
+  }
+
+  const generation = ++loadGeneration
+  const requestPage = reset ? 1 : logsPage.value
+  const isFirstPage = requestPage === 1
+
+  if (reset) {
+    logsPage.value = 1
+    logsTotal.value = 0
+    logsHasMore.value = true
+    loadMoreError.value = ''
+  }
+
+  if (isFirstPage) {
+    loading.value = !record.value
+    refreshing.value = !!record.value
+    loadFailed.value = false
+  }
+  else {
+    loadingMore.value = true
+    loadMoreError.value = ''
+  }
+
+  try {
+    if (isFirstPage) {
+      const result = await getVaultRecordDetail(vaultId.value)
+      if (generation !== loadGeneration) {
+        return
+      }
+      record.value = result.record
+      vaultCard.value = result.card
+      logsTotal.value = result.logsTotal
+      logsPage.value = result.logsPage + 1
+      logsHasMore.value = result.logsPage * VAULT_DETAIL_LOG_SIZE < result.logsTotal
+    }
+    else {
+      if (!record.value || !vaultCard.value) {
+        logsHasMore.value = false
+        return
+      }
+      const result = await getVaultRecordLogPage(vaultCard.value, {
+        page: requestPage,
+        size: VAULT_DETAIL_LOG_SIZE,
+      })
+      if (generation !== loadGeneration) {
+        return
+      }
+      record.value = {
+        ...record.value,
+        changes: record.value.changes.concat(result.list),
+      }
+      logsTotal.value = result.total
+      logsPage.value = result.page + 1
+      logsHasMore.value = result.hasMore
+    }
+    fetchedAt.value = formatFetchTime()
+  }
+  catch (error) {
+    if (generation !== loadGeneration) {
+      return
+    }
+    console.error(error)
+    if (isFirstPage) {
+      loadFailed.value = true
+      record.value = null
+    }
+    else {
+      loadMoreError.value = '加载更多失败'
+    }
+    uni.showToast({
+      icon: 'none',
+      title: isFirstPage ? '金库详情加载失败' : '记录加载失败',
+    })
+  }
+  finally {
+    if (generation === loadGeneration) {
+      loading.value = false
+      refreshing.value = false
+      loadingMore.value = false
+      loaded.value = true
+      uni.stopPullDownRefresh()
+    }
+  }
+}
+
+function handleLoadMore() {
+  if (!logsHasMore.value || loadingMore.value || loading.value || refreshing.value) {
+    return
+  }
+  loadVaultDetail()
+}
+
+onPullDownRefresh(() => {
+  loadVaultDetail({ reset: true })
+})
+
+onReachBottom(() => {
+  handleLoadMore()
+})
+
+onPageScroll((event) => {
+  showBackTop.value = event.scrollTop > 420
+})
 </script>
 
 <template>
   <view class="vault-detail-page" :style="navStyle">
     <view class="vault-detail-glow" />
-    <EphoneTransparentNav
+    <YunTransparentNav
       title="金库明细"
       fallback-url="/pages/vault/vault"
       fallback-type="switchTab"
@@ -45,7 +174,7 @@ function handleNavLayout(style: Record<string, string>) {
     />
 
     <view class="vault-detail-content">
-      <view class="vault-summary">
+      <view v-if="record" class="vault-summary">
         <view class="vault-user">
           <AnchorAvatar :src="record.avatar" :name="record.name" :show-pulse="false" size="md" />
           <view class="vault-user-main">
@@ -59,6 +188,9 @@ function handleNavLayout(style: Record<string, string>) {
             <view class="vault-user-meta">
               更新时间：{{ record.updatedAt }}
             </view>
+            <view class="vault-user-meta">
+              数据获取时间：{{ fetchedAt || '同步中...' }}
+            </view>
           </view>
         </view>
 
@@ -66,7 +198,7 @@ function handleNavLayout(style: Record<string, string>) {
           金币总额
         </view>
         <view class="vault-total-value">
-          {{ formatMoney(record.balance) }}
+          {{ formatIntegerMoney(record.balance) }}
         </view>
 
         <view class="vault-summary-stats">
@@ -77,35 +209,52 @@ function handleNavLayout(style: Record<string, string>) {
           <view class="vault-summary-stat">
             <text>本日增减</text>
             <strong :class="{ 'is-down': record.dailyDelta < 0 }">
-              {{ formatSignedMoney(record.dailyDelta) }}
+              {{ formatSignedIntegerMoney(record.dailyDelta) }}
             </strong>
           </view>
         </view>
       </view>
 
-      <view class="vault-record-title">
+      <view v-if="record" class="vault-record-title">
         变动记录
       </view>
 
-      <view class="vault-change-list">
-        <view v-for="change in record.changes" :key="change.id" class="vault-change-row">
-          <view class="vault-change-mark" :class="{ 'is-down': change.amount < 0 }">
-            {{ change.amount >= 0 ? '+' : '-' }}
-          </view>
-          <view class="vault-change-main">
-            <view class="vault-change-name">
-              {{ change.title }}
+      <EphoneListStatus
+        :loading="loading"
+        :refreshing="refreshing"
+        :loading-more="loadingMore"
+        :loaded="loaded"
+        :has-more="logsHasMore"
+        :has-items="!!record?.changes.length"
+        :error-message="loadFailed ? '金库详情加载失败' : ''"
+        :load-more-error="loadMoreError"
+        loading-text="正在读取金库详情..."
+        empty-text="暂无乐享币增减记录"
+        @retry="loadMoreError ? loadVaultDetail() : loadVaultDetail({ reset: true })"
+        @load-more="handleLoadMore"
+      >
+        <view v-if="record" class="vault-change-list">
+          <view v-for="change in record.changes" :key="change.id" class="vault-change-row">
+            <view class="vault-change-mark" :class="{ 'is-down': change.amount < 0 }">
+              {{ change.amount >= 0 ? '+' : '-' }}
             </view>
-            <view class="vault-change-desc">
-              {{ change.time }} · {{ change.remark }}
+            <view class="vault-change-main">
+              <view class="vault-change-name">
+                {{ change.title }}
+              </view>
+              <view class="vault-change-desc">
+                {{ change.time }} · {{ change.remark }}
+              </view>
             </view>
-          </view>
-          <view class="vault-change-amount" :class="{ 'is-down': change.amount < 0 }">
-            {{ formatSignedMoney(change.amount) }}
+            <view class="vault-change-amount" :class="{ 'is-down': change.amount < 0 }">
+              {{ formatSignedIntegerMoney(change.amount) }}
+            </view>
           </view>
         </view>
-      </view>
+      </EphoneListStatus>
     </view>
+
+    <BackTopButton :visible="showBackTop" />
   </view>
 </template>
 
@@ -125,7 +274,7 @@ function handleNavLayout(style: Record<string, string>) {
   width: 420rpx;
   height: 420rpx;
   border-radius: 50%;
-  background: rgba(255, 76, 166, 0.08);
+  background: rgba(233, 138, 182, 0.055);
   filter: blur(30rpx);
   pointer-events: none;
 }
@@ -142,12 +291,10 @@ function handleNavLayout(style: Record<string, string>) {
 
 .vault-summary {
   padding: 28rpx;
-  border: 1rpx solid rgba(255, 88, 167, 0.3);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
   border-radius: 32rpx;
-  background:
-    radial-gradient(circle at 96% 10%, rgba(255, 82, 166, 0.24), transparent 38%),
-    linear-gradient(145deg, rgba(255, 70, 158, 0.16), rgba(12, 13, 20, 0.92));
-  box-shadow: inset 0 0 34rpx rgba(255, 70, 158, 0.08), 0 18rpx 44rpx rgba(0, 0, 0, 0.24);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
 }
 
 .vault-user {
@@ -171,9 +318,9 @@ function handleNavLayout(style: Record<string, string>) {
 
 .vault-user-name text {
   padding: 2rpx 12rpx;
-  border: 1rpx solid rgba(255, 91, 174, 0.62);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
   border-radius: 10rpx;
-  color: var(--ephone-primary);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 22rpx;
 }
 
@@ -195,7 +342,7 @@ function handleNavLayout(style: Record<string, string>) {
   font-size: 58rpx;
   font-weight: 900;
   line-height: 1;
-  text-shadow: 0 0 24rpx rgba(255, 78, 160, 0.82);
+  text-shadow: none;
 }
 
 .vault-summary-stats {
@@ -221,7 +368,7 @@ function handleNavLayout(style: Record<string, string>) {
 .vault-summary-stat strong {
   display: block;
   margin-top: 10rpx;
-  color: var(--ephone-primary);
+  color: var(--ephone-primary-soft);
   font-size: 32rpx;
   font-weight: 900;
 }
@@ -249,7 +396,7 @@ function handleNavLayout(style: Record<string, string>) {
   display: grid;
   grid-template-columns: 58rpx minmax(0, 1fr) 190rpx;
   gap: 16rpx;
-  align-items: center;
+  align-items: flex-start;
   min-height: 112rpx;
   padding: 18rpx 20rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.08);
@@ -261,11 +408,12 @@ function handleNavLayout(style: Record<string, string>) {
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
   width: 52rpx;
   height: 52rpx;
   border-radius: 50%;
-  background: rgba(255, 82, 166, 0.16);
-  color: var(--ephone-primary);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ephone-primary-soft);
   font-size: 32rpx;
   font-weight: 900;
 }
@@ -285,15 +433,17 @@ function handleNavLayout(style: Record<string, string>) {
 
 .vault-change-desc {
   margin-top: 8rpx;
-  overflow: hidden;
   color: rgba(255, 255, 255, 0.5);
   font-size: 22rpx;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .vault-change-amount {
-  color: var(--ephone-primary);
+  padding-top: 2rpx;
+  color: var(--ephone-primary-soft);
   font-size: 30rpx;
   font-weight: 900;
   text-align: right;

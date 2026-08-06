@@ -37,10 +37,10 @@ const displayValue = computed(() => props.money ? formatMoney(props.value) : for
   align-items: center;
   justify-content: flex-end;
   gap: 8rpx;
-  color: var(--ephone-primary);
+  color: var(--ephone-primary-soft);
   font-weight: 900;
   line-height: 1;
-  text-shadow: 0 0 18rpx rgba(255, 63, 151, 0.44);
+  text-shadow: none;
 }
 
 .stat-icon {

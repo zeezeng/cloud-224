@@ -40,7 +40,7 @@ export interface EphoneVaultRecord {
   id: number
   name: string
   roomId: string
-  group: '女团' | '男团'
+  group: string
   avatar: string
   balance: number
   dailyRecordCount: number
@@ -131,10 +131,10 @@ export const ephoneAnchors: EphoneAnchor[] = [
 ]
 
 export const homeQuickActions: EphoneQuickAction[] = [
-  { title: '乐享值查询', icon: 'i-carbon-star-filled', accent: '#ff58a7' },
-  { title: '流水查询', icon: 'i-carbon-chart-line', accent: '#c75dff' },
-  { title: '主播金库', icon: 'i-carbon-box', accent: '#ff4d98' },
-  { title: '数据日历', icon: 'i-carbon-calendar', accent: '#ff7ab8' },
+  { title: '乐享值查询', icon: 'i-carbon-star-filled', accent: '#f2b6cc' },
+  { title: '流水查询', icon: 'i-carbon-chart-line', accent: '#d9c7e8' },
+  { title: '主播金库', icon: 'i-carbon-box', accent: '#e9abc7' },
+  { title: '数据日历', icon: 'i-carbon-calendar', accent: '#ddd2d8' },
 ]
 
 export const anchorFilters = ['全部', '直播中', '女团', '男团', '本月Top']

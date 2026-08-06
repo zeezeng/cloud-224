@@ -1,19 +1,41 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
+  modelValue?: string
   placeholder: string
   showButton?: boolean
   variant?: 'default' | 'enjoy' | 'vault'
 }>(), {
+  modelValue: '',
   showButton: false,
   variant: 'default',
 })
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  search: [value: string]
+}>()
+
+function handleInput(event: { detail?: { value?: string } }) {
+  emit('update:modelValue', event.detail?.value || '')
+}
+
+function handleSearch() {
+  emit('search', props.modelValue.trim())
+}
 </script>
 
 <template>
   <view class="neon-search" :class="`neon-search-${variant}`">
     <view class="i-carbon-search neon-search-icon" />
-    <input class="neon-search-input" :placeholder="placeholder" confirm-type="search">
-    <button v-if="showButton" class="neon-search-button">
+    <input
+      class="neon-search-input"
+      :value="modelValue"
+      :placeholder="placeholder"
+      confirm-type="search"
+      @input="handleInput"
+      @confirm="handleSearch"
+    >
+    <button v-if="showButton" class="neon-search-button" @click="handleSearch">
       搜索
     </button>
   </view>
@@ -29,8 +51,8 @@ withDefaults(defineProps<{
   padding: 0 10rpx 0 26rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.18);
   border-radius: 999rpx;
-  background: linear-gradient(100deg, rgba(255, 255, 255, 0.1), rgba(255, 78, 159, 0.14));
-  box-shadow: inset 0 0 20rpx rgba(255, 255, 255, 0.04), 0 0 30rpx rgba(255, 55, 151, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 
 .neon-search-icon {
@@ -53,8 +75,9 @@ withDefaults(defineProps<{
   height: 60rpx;
   padding: 0 28rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #ff69b4, #f92f8f);
-  box-shadow: 0 0 22rpx rgba(255, 66, 156, 0.52);
+  border: 1rpx solid rgba(242, 182, 204, 0.2);
+  background: rgba(242, 182, 204, 0.1);
+  box-shadow: none;
   color: #fff;
   font-size: 28rpx;
   font-weight: 700;
@@ -77,7 +100,7 @@ withDefaults(defineProps<{
 
 .neon-search-enjoy .neon-search-icon,
 .neon-search-vault .neon-search-icon {
-  color: var(--ephone-primary-soft);
+  color: rgba(255, 255, 255, 0.62);
   font-size: 40rpx;
 }
 
@@ -91,16 +114,14 @@ withDefaults(defineProps<{
 .neon-search-vault .neon-search-button {
   min-width: 128rpx;
   height: 66rpx;
-  border: 1rpx solid rgba(255, 91, 174, 0.36);
-  background: rgba(255, 79, 163, 0.18);
+  border: 1rpx solid rgba(242, 182, 204, 0.22);
+  background: rgba(242, 182, 204, 0.1);
   font-size: 26rpx;
   line-height: 66rpx;
 }
 
 .neon-search-vault {
-  border-color: rgba(255, 112, 181, 0.34);
-  background:
-    radial-gradient(circle at 90% 50%, rgba(255, 79, 163, 0.14), transparent 34%),
-    rgba(3, 3, 6, 0.48);
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
 }
 </style>

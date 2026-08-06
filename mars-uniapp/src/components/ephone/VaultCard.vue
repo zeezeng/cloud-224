@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import type { EphoneVaultRecord } from '@/data/ephone'
-import { formatMoney, formatSignedMoney } from '@/utils/ephone'
+import { formatIntegerMoney, formatSignedIntegerMoney } from '@/utils/ephone'
 import AnchorAvatar from './AnchorAvatar.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   record: EphoneVaultRecord
-}>()
+  rank?: number
+}>(), {
+  rank: 1,
+})
 
 const emit = defineEmits<{
   view: [record: EphoneVaultRecord]
 }>()
+
+const rankLabel = computed(() => {
+  return String(props.rank).padStart(2, '0')
+})
 
 function handleView() {
   emit('view', props.record)
@@ -17,45 +24,77 @@ function handleView() {
 </script>
 
 <template>
-  <view class="vault-card" @tap="handleView">
-    <view class="vault-card-main">
-      <AnchorAvatar :src="record.avatar" :name="record.name" :show-pulse="false" size="md" />
-      <view class="vault-info">
-        <view class="vault-name">
-          {{ record.name }}
-          <text>{{ record.group }}</text>
-        </view>
-        <view class="vault-meta">
-          直播间号：{{ record.roomId }}
-        </view>
-        <view class="vault-meta">
-          更新时间：{{ record.updatedAt }}
-        </view>
-      </view>
-      <view class="vault-balance">
-        <view class="vault-label">
-          金币总额
-        </view>
-        <view class="vault-value">
-          {{ formatMoney(record.balance) }}
-        </view>
-      </view>
+  <view class="vault-card" hover-class="vault-card-hover" @tap="handleView">
+    <view class="vault-rank">
+      {{ rankLabel }}
     </view>
 
-    <view class="vault-daily">
-      <view class="vault-daily-item">
-        <text>本日记录</text>
-        <strong>{{ record.dailyRecordCount }} 笔</strong>
+    <view class="vault-avatar-zone">
+      <AnchorAvatar
+        class="vault-card-avatar"
+        :src="record.avatar"
+        :name="record.name"
+        :crown="rank === 1"
+        :show-pulse="false"
+        ring-color="rgba(217, 175, 96, 0.88)"
+        size="lg"
+      />
+    </view>
+
+    <view class="vault-content">
+      <view class="vault-card-head">
+        <view class="vault-name-row">
+          <view class="vault-name">
+            {{ record.name }}
+          </view>
+          <view class="vault-tag">
+            {{ record.group }}
+          </view>
+        </view>
+
+        <button class="vault-button" aria-label="查看金库详情" @tap.stop="handleView">
+          <text>详情</text>
+          <view class="i-carbon-chevron-right vault-button-icon" />
+        </button>
       </view>
-      <view class="vault-daily-item">
-        <text>本日增减</text>
-        <strong :class="{ 'vault-delta-down': record.dailyDelta < 0 }">
-          {{ formatSignedMoney(record.dailyDelta) }}
-        </strong>
+
+      <view class="vault-label">
+        金币余额
       </view>
-      <button class="vault-button" @tap.stop="handleView">
-        查看明细
-      </button>
+      <view class="vault-value">
+        {{ formatIntegerMoney(record.balance) }}
+      </view>
+
+      <view class="vault-divider" />
+
+      <view class="vault-daily">
+        <view class="vault-daily-item">
+          <view class="vault-stat-icon vault-stat-record">
+            <view class="i-carbon-calendar" />
+          </view>
+          <view class="vault-stat-copy">
+            <view class="vault-daily-label">
+              本日记录
+            </view>
+            <view class="vault-daily-value">
+              {{ record.dailyRecordCount }} 笔
+            </view>
+          </view>
+        </view>
+        <view class="vault-daily-item">
+          <view class="vault-stat-icon vault-stat-delta">
+            <view class="i-carbon-money" />
+          </view>
+          <view class="vault-stat-copy">
+            <view class="vault-daily-label">
+              本日增减
+            </view>
+            <view class="vault-daily-value vault-delta" :class="{ 'vault-delta-down': record.dailyDelta < 0 }">
+              {{ formatSignedIntegerMoney(record.dailyDelta) }}
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -63,113 +102,252 @@ function handleView() {
 <style scoped lang="scss">
 .vault-card {
   position: relative;
-  margin-top: 20rpx;
-  padding: 24rpx;
-  overflow: hidden;
-  border: 1rpx solid rgba(255, 80, 166, 0.24);
-  border-radius: 30rpx;
-  background:
-    radial-gradient(circle at 96% 14%, rgba(255, 82, 166, 0.2), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 68, 158, 0.08) 42%, rgba(10, 10, 16, 0.92));
-  box-shadow: inset 0 0 32rpx rgba(255, 80, 166, 0.07), 0 12rpx 34rpx rgba(0, 0, 0, 0.22);
-}
-
-.vault-card-main {
   display: grid;
-  grid-template-columns: 108rpx minmax(0, 1fr) 210rpx;
+  grid-template-columns: 156rpx minmax(0, 1fr);
   gap: 18rpx;
   align-items: center;
+  min-height: 226rpx;
+  margin-top: 20rpx;
+  padding: 26rpx 22rpx 24rpx 28rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: none;
 }
 
-.vault-info {
+.vault-card-hover {
+  opacity: 0.86;
+}
+
+.vault-rank {
+  position: absolute;
+  top: 18rpx;
+  left: 18rpx;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46rpx;
+  height: 34rpx;
+  padding: 0 10rpx;
+  border: 1rpx solid rgba(217, 175, 96, 0.38);
+  border-radius: 999rpx;
+  background: rgba(29, 23, 14, 0.86);
+  color: rgba(244, 211, 151, 0.96);
+  font-size: 20rpx;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 34rpx;
+}
+
+.vault-avatar-zone {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  min-height: 174rpx;
+}
+
+.vault-card-avatar {
+  width: 142rpx;
+  height: 142rpx;
+  z-index: 2;
+}
+
+.vault-card-avatar :deep(.anchor-avatar-frame) {
+  border-width: 4rpx;
+  box-shadow:
+    0 0 0 7rpx rgba(217, 175, 96, 0.08),
+    0 0 0 1rpx rgba(255, 255, 255, 0.05),
+    0 10rpx 22rpx rgba(0, 0, 0, 0.32);
+}
+
+.vault-card-avatar :deep(.anchor-crown) {
+  top: -24rpx;
+  color: #f0c86f;
+  font-size: 42rpx;
+  filter: drop-shadow(0 6rpx 8rpx rgba(0, 0, 0, 0.28));
+}
+
+.vault-content {
+  position: relative;
+  z-index: 1;
   min-width: 0;
 }
 
-.vault-name {
+.vault-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.vault-name-row {
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  color: #fff;
-  font-size: 30rpx;
+  flex: 1;
+  min-width: 0;
+  gap: 10rpx;
+}
+
+.vault-name {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.97);
+  font-size: 31rpx;
   font-weight: 900;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.vault-name text {
-  padding: 2rpx 12rpx;
-  border: 1rpx solid rgba(255, 91, 174, 0.62);
-  border-radius: 10rpx;
-  color: var(--ephone-primary);
-  font-size: 22rpx;
-}
-
-.vault-meta {
-  margin-top: 8rpx;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 23rpx;
-}
-
-.vault-balance {
-  text-align: right;
+.vault-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 32rpx;
+  padding: 0 13rpx;
+  border-radius: 999rpx;
+  background: rgba(217, 175, 96, 0.16);
+  color: rgba(239, 215, 172, 0.94);
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 32rpx;
 }
 
 .vault-label {
-  color: rgba(255, 255, 255, 0.66);
+  margin-top: 13rpx;
+  color: rgba(255, 255, 255, 0.58);
   font-size: 22rpx;
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .vault-value {
-  margin-top: 10rpx;
-  color: #fff;
-  font-size: 36rpx;
+  margin-top: 9rpx;
+  color: #f2d59a;
+  font-size: 45rpx;
   font-weight: 900;
-  text-shadow: 0 0 18rpx rgba(255, 78, 160, 0.92);
+  letter-spacing: 0;
+  line-height: 1.04;
+  text-shadow: 0 7rpx 16rpx rgba(0, 0, 0, 0.32);
+}
+
+.vault-divider {
+  height: 1rpx;
+  margin: 20rpx 0 17rpx;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.11), rgba(217, 175, 96, 0.16), rgba(255, 255, 255, 0.04));
 }
 
 .vault-daily {
   display: grid;
-  grid-template-columns: 1fr 1fr 158rpx;
-  gap: 14rpx;
-  align-items: center;
-  margin-top: 22rpx;
+  grid-template-columns: 0.68fr 1.32fr;
+  gap: 0;
 }
 
 .vault-daily-item {
-  min-height: 76rpx;
-  padding: 12rpx 16rpx;
-  border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.06);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+  min-height: 58rpx;
 }
 
-.vault-daily-item text {
-  display: block;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 21rpx;
+.vault-daily-item + .vault-daily-item {
+  padding-left: 18rpx;
 }
 
-.vault-daily-item strong {
-  display: block;
-  margin-top: 8rpx;
-  color: var(--ephone-primary);
-  font-size: 28rpx;
+.vault-daily-item + .vault-daily-item::before {
+  position: absolute;
+  top: 8rpx;
+  bottom: 8rpx;
+  left: 0;
+  width: 1rpx;
+  background: rgba(255, 255, 255, 0.14);
+  content: '';
+}
+
+.vault-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 50%;
+  font-size: 24rpx;
+}
+
+.vault-stat-record {
+  background: rgba(178, 127, 235, 0.18);
+  color: #d8a9ff;
+}
+
+.vault-stat-delta {
+  background: rgba(255, 128, 167, 0.15);
+  color: #ff94ac;
+}
+
+.vault-stat-copy {
+  min-width: 0;
+}
+
+.vault-daily-label {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-daily-value {
+  margin-top: 6rpx;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 25rpx;
   font-weight: 900;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.vault-daily-item .vault-delta-down {
-  color: #36d889;
+.vault-delta-down {
+  color: #7bd9a3;
+}
+
+.vault-delta {
+  overflow: visible;
+  color: #ff93a9;
+  font-size: 24rpx;
+  text-overflow: clip;
 }
 
 .vault-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 62rpx;
-  padding: 0 26rpx;
+  gap: 2rpx;
+  flex: 0 0 auto;
+  min-width: 94rpx;
+  height: 48rpx;
+  padding: 0 12rpx 0 18rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #ff69b4, #f83a94);
-  color: #fff;
-  font-size: 24rpx;
+  border: 1rpx solid rgba(217, 175, 96, 0.56);
+  background: rgba(29, 24, 17, 0.52);
+  color: rgba(243, 211, 151, 0.96);
+  font-size: 22rpx;
   font-weight: 800;
-  line-height: 62rpx;
+  line-height: 48rpx;
+}
+
+.vault-button-icon {
+  font-size: 26rpx;
 }
 
 .vault-button::after {

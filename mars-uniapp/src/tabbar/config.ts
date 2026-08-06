@@ -48,7 +48,7 @@ export const nativeTabbarList: NativeTabBarItem[] = [
     iconPath: 'static/tabbar/example.png',
     selectedIconPath: 'static/tabbar/exampleHL.png',
     pagePath: tabPagePath('pages/enjoy/enjoy'),
-    text: '乐享值',
+    text: '乐享',
   },
   {
     iconPath: 'static/tabbar/example.png',
@@ -80,7 +80,7 @@ export const customTabbarList: CustomTabBarItem[] = [
     icon: 'i-carbon-trophy',
   },
   {
-    text: '乐享值',
+    text: '乐享',
     pagePath: tabPagePath('pages/enjoy/enjoy'),
     iconType: 'unocss',
     icon: 'i-carbon-star',
@@ -119,7 +119,7 @@ const _tabbar: TabBar = {
   // 只有微信小程序支持 custom。App 和 H5 不生效
   custom: selectedTabbarStrategy === TABBAR_STRATEGY_MAP.CUSTOM_TABBAR,
   color: '#7c7c82',
-  selectedColor: '#ff5bad',
+  selectedColor: '#f2b6cc',
   backgroundColor: '#000000',
   borderStyle: 'black',
   height: '58px',

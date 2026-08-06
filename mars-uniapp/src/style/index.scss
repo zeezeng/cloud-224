@@ -12,17 +12,17 @@
 :root,
 page {
   // 修改按主题色
-  --wot-color-theme: #ff4fa3;
-  --ephone-primary: #ff4fa3;
-  --ephone-primary-soft: #ff8ac8;
+  --wot-color-theme: #e98ab6;
+  --ephone-primary: #e98ab6;
+  --ephone-primary-soft: #f2b6cc;
   --ephone-text: #ffffff;
-  --ephone-muted: rgba(255, 255, 255, 0.62);
-  --ephone-card: rgba(18, 18, 24, 0.86);
-  --ephone-border: rgba(255, 82, 166, 0.36);
+  --ephone-muted: rgba(255, 255, 255, 0.58);
+  --ephone-card: rgba(16, 16, 20, 0.82);
+  --ephone-border: rgba(255, 255, 255, 0.1);
   --ephone-bg-solid: #000000;
   --ephone-bg-scene:
-    radial-gradient(ellipse at 74% 20%, rgba(255, 76, 166, 0.12), transparent 34%),
-    radial-gradient(ellipse at 44% 76%, rgba(255, 76, 166, 0.08), transparent 30%),
+    radial-gradient(ellipse at 74% 20%, rgba(233, 138, 182, 0.065), transparent 34%),
+    radial-gradient(ellipse at 44% 76%, rgba(233, 138, 182, 0.04), transparent 30%),
     linear-gradient(180deg, #000000 0%, #030204 46%, #000000 100%);
 
   // 修改按钮背景色
