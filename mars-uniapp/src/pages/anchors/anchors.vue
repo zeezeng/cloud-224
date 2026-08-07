@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { anchorFilters, ephoneAnchors } from '@/data/ephone'
-import AnchorCard from '@/components/ephone/AnchorCard.vue'
-import CapsuleTabs from '@/components/ephone/CapsuleTabs.vue'
-import YunPage from '@/components/ephone/YunPage.vue'
+import { anchorFilters, ephoneAnchors } from '@/data/yun'
+import AnchorCard from '@/components/yun/AnchorCard.vue'
+import CapsuleTabs from '@/components/yun/CapsuleTabs.vue'
+import YunPage from '@/components/yun/YunPage.vue'
 
 defineOptions({
   name: 'Anchors',

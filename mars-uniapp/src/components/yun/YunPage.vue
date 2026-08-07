@@ -1,10 +1,13 @@
 <script setup lang="ts">
-defineProps<{
+withDefaults(defineProps<{
   title: string
   subtitle: string
   heroImage?: string
   heroAlt?: string
-}>()
+  scrollLocked?: boolean
+}>(), {
+  scrollLocked: false,
+})
 
 const navbarStyle = ref<Record<string, string>>({})
 
@@ -29,10 +32,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <view class="ephone-page">
+  <view class="ephone-page" :class="{ 'ephone-page-scroll-locked': scrollLocked }">
     <view class="ephone-glow ephone-glow-left" />
     <view class="ephone-glow ephone-glow-right" />
-    <view class="ephone-content" :class="{ 'ephone-content-with-image': heroImage }">
+    <view
+      class="ephone-content"
+      :class="{
+        'ephone-content-with-image': heroImage,
+        'ephone-content-scroll-locked': scrollLocked,
+      }"
+    >
       <view class="ephone-heading" :class="{ 'ephone-heading-with-image': heroImage }" :style="navbarStyle">
         <view class="ephone-heading-copy">
           <view class="ephone-title">
@@ -68,6 +77,12 @@ onMounted(() => {
   color: var(--ephone-text);
 }
 
+.ephone-page-scroll-locked {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .ephone-content {
   position: relative;
   z-index: 1;
@@ -77,6 +92,13 @@ onMounted(() => {
   margin: 0 auto;
   --ephone-page-content-top: 228rpx;
   padding: var(--ephone-page-content-top) 40rpx 180rpx;
+}
+
+.ephone-content-scroll-locked {
+  display: flex;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .ephone-content-with-image {

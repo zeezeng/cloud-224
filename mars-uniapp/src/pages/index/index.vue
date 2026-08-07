@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ephoneAnchors, homeQuickActions, rankingTypeTabs } from '@/data/ephone'
-import { formatCompactNumber } from '@/utils/ephone'
-import CapsuleTabs from '@/components/ephone/CapsuleTabs.vue'
-import YunPanel from '@/components/ephone/YunPanel.vue'
-import YunPage from '@/components/ephone/YunPage.vue'
-import HeroBanner from '@/components/ephone/HeroBanner.vue'
-import QuickGrid from '@/components/ephone/QuickGrid.vue'
-import RankBadge from '@/components/ephone/RankBadge.vue'
-import AnchorAvatar from '@/components/ephone/AnchorAvatar.vue'
+import { ephoneAnchors, homeQuickActions, rankingTypeTabs } from '@/data/yun'
+import { formatCompactNumber } from '@/utils/yun'
+import CapsuleTabs from '@/components/yun/CapsuleTabs.vue'
+import YunPanel from '@/components/yun/YunPanel.vue'
+import YunPage from '@/components/yun/YunPage.vue'
+import HeroBanner from '@/components/yun/HeroBanner.vue'
+import QuickGrid from '@/components/yun/QuickGrid.vue'
+import RankBadge from '@/components/yun/RankBadge.vue'
+import AnchorAvatar from '@/components/yun/AnchorAvatar.vue'
+import AddToDesktopTip from '@/components/yun/AddToDesktopTip.vue'
 
 defineOptions({
   name: 'Home',
@@ -65,6 +66,8 @@ const topAnchors = ephoneAnchors.slice(0, 3)
 
     <QuickGrid :items="homeQuickActions" />
   </YunPage>
+
+  <AddToDesktopTip />
 </template>
 
 <style scoped lang="scss">

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { EphoneVaultRecord } from '@/data/ephone'
+import type { EphoneVaultRecord } from '@/data/yun'
 import { getVaultRecordDetail, getVaultRecordLogPage, VAULT_DETAIL_LOG_SIZE } from '@/api/vault'
-import BackTopButton from '@/components/ephone/BackTopButton.vue'
-import AnchorAvatar from '@/components/ephone/AnchorAvatar.vue'
-import EphoneListStatus from '@/components/ephone/EphoneListStatus.vue'
-import YunTransparentNav from '@/components/ephone/YunTransparentNav.vue'
-import { formatFetchTime, formatIntegerMoney, formatSignedIntegerMoney } from '@/utils/ephone'
+import BackTopButton from '@/components/yun/BackTopButton.vue'
+import AnchorAvatar from '@/components/yun/AnchorAvatar.vue'
+import YunListStatus from '@/components/yun/YunListStatus.vue'
+import YunTransparentNav from '@/components/yun/YunTransparentNav.vue'
+import { formatFetchTime, formatIntegerMoney, formatSignedIntegerMoney } from '@/utils/yun'
 
 defineOptions({
   name: 'VaultDetail',
@@ -219,7 +219,7 @@ onPageScroll((event) => {
         变动记录
       </view>
 
-      <EphoneListStatus
+      <YunListStatus
         :loading="loading"
         :refreshing="refreshing"
         :loading-more="loadingMore"
@@ -251,7 +251,7 @@ onPageScroll((event) => {
             </view>
           </view>
         </view>
-      </EphoneListStatus>
+      </YunListStatus>
     </view>
 
     <BackTopButton :visible="showBackTop" />

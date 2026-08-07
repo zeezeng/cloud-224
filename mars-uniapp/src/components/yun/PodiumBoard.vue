@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EphoneRankRecord } from '@/data/ephone'
+import type { EphoneRankRecord } from '@/data/yun'
 import AnchorAvatar from './AnchorAvatar.vue'
 import RankBadge from './RankBadge.vue'
 import StatValue from './StatValue.vue'

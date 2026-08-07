@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { rankingRecords } from '@/data/ephone'
-import YunPage from '@/components/ephone/YunPage.vue'
-import PodiumBoard from '@/components/ephone/PodiumBoard.vue'
-import RankingList from '@/components/ephone/RankingList.vue'
+import { rankingRecords } from '@/data/yun'
+import YunPage from '@/components/yun/YunPage.vue'
+import PodiumBoard from '@/components/yun/PodiumBoard.vue'
+import RankingList from '@/components/yun/RankingList.vue'
 
 defineOptions({
   name: 'Ranking',

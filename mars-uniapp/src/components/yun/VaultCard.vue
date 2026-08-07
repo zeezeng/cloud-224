@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { EphoneVaultRecord } from '@/data/ephone'
-import { formatIntegerMoney, formatSignedIntegerMoney } from '@/utils/ephone'
+import type { EphoneVaultRecord } from '@/data/yun'
+import { formatIntegerMoney, formatSignedIntegerMoney } from '@/utils/yun'
 import AnchorAvatar from './AnchorAvatar.vue'
 
 const props = withDefaults(defineProps<{

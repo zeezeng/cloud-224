@@ -4,17 +4,26 @@ const props = withDefaults(defineProps<{
   bottom?: string
   right?: string
   duration?: number
+  pageScroll?: boolean
 }>(), {
   bottom: 'calc(env(safe-area-inset-bottom) + 156rpx)',
   right: '32rpx',
   duration: 260,
+  pageScroll: true,
 })
 
+const emit = defineEmits<{
+  backTop: []
+}>()
+
 function handleBackTop() {
-  uni.pageScrollTo({
-    scrollTop: 0,
-    duration: props.duration,
-  })
+  if (props.pageScroll) {
+    uni.pageScrollTo({
+      scrollTop: 0,
+      duration: props.duration,
+    })
+  }
+  emit('backTop')
 }
 </script>
 

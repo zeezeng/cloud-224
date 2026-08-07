@@ -1,4 +1,4 @@
-import type { EphoneRankRecord } from '@/data/ephone'
+import type { EphoneRankRecord } from '@/data/yun'
 import { httpPost } from '@/http/http'
 
 const DONGDONGNE_LIVE_API = 'https://api.dongdongne.com/api/live'

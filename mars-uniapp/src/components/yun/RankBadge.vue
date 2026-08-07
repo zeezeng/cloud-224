@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getRankTone } from '@/utils/ephone'
+import { getRankTone } from '@/utils/yun'
 
 const props = defineProps<{
   rank: number

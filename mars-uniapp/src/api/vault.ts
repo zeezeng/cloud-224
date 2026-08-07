@@ -1,4 +1,4 @@
-import type { EphoneVaultChange, EphoneVaultRecord } from '@/data/ephone'
+import type { EphoneVaultChange, EphoneVaultRecord } from '@/data/yun'
 import { httpGet, httpPost } from '@/http/http'
 
 const DONGDONGNE_VAULT_API = 'https://api.dongdongne.com/api/live/player'

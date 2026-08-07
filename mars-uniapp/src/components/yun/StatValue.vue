@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatCompactNumber, formatMoney } from '@/utils/ephone'
+import { formatCompactNumber, formatMoney } from '@/utils/yun'
 
 const props = withDefaults(defineProps<{
   value: number

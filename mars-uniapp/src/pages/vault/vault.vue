@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { EphoneVaultRecord } from '@/data/ephone'
+import type { EphoneVaultRecord } from '@/data/yun'
 import { getVaultRecordList, VAULT_PAGE_SIZE } from '@/api/vault'
-import BackTopButton from '@/components/ephone/BackTopButton.vue'
-import EphoneFixedSearch from '@/components/ephone/EphoneFixedSearch.vue'
-import EphoneListStatus from '@/components/ephone/EphoneListStatus.vue'
-import YunPage from '@/components/ephone/YunPage.vue'
-import VaultCard from '@/components/ephone/VaultCard.vue'
-import { formatFetchTime } from '@/utils/ephone'
+import BackTopButton from '@/components/yun/BackTopButton.vue'
+import YunFixedSearch from '@/components/yun/YunFixedSearch.vue'
+import YunListStatus from '@/components/yun/YunListStatus.vue'
+import YunPage from '@/components/yun/YunPage.vue'
+import VaultCard from '@/components/yun/VaultCard.vue'
+import { formatFetchTime } from '@/utils/yun'
 
 defineOptions({
   name: 'Vault',
@@ -16,8 +16,7 @@ definePage({
   style: {
     navigationStyle: 'custom',
     navigationBarTitleText: '金库',
-    enablePullDownRefresh: true,
-    onReachBottomDistance: 120,
+    disableScroll: true,
     backgroundColor: '#000000',
   },
 })
@@ -35,8 +34,10 @@ const errorMessage = ref('')
 const loadMoreError = ref('')
 const showBackTop = ref(false)
 const fetchedAt = ref('')
+const listScrollTop = ref(0)
 
 let loadGeneration = 0
+let currentListScrollTop = 0
 
 const summaryText = computed(() => {
   if (!loaded.value || loading.value || refreshing.value) {
@@ -132,76 +133,105 @@ function goVaultDetail(record: EphoneVaultRecord) {
   })
 }
 
+function handleRefresh() {
+  loadVaultRecords({ reset: true })
+}
+
+function handleListScroll(event: { detail?: { scrollTop?: number } }) {
+  currentListScrollTop = Number(event.detail?.scrollTop || 0)
+  showBackTop.value = currentListScrollTop > 420
+}
+
+async function handleBackTop() {
+  listScrollTop.value = currentListScrollTop
+  await nextTick()
+  listScrollTop.value = 0
+}
+
 onLoad(() => {
   loadVaultRecords({ reset: true })
-})
-
-onPullDownRefresh(() => {
-  loadVaultRecords({ reset: true })
-})
-
-onReachBottom(() => {
-  handleLoadMore()
-})
-
-onPageScroll((event) => {
-  showBackTop.value = event.scrollTop > 420
 })
 </script>
 
 <template>
-  <YunPage title="主播金库" subtitle="稳稳积累 · 闪耀前行">
-    <EphoneFixedSearch
-      v-model="searchKeyword"
-      placeholder="搜索主播昵称"
-      show-button
-      variant="vault"
-      spacer-height="138rpx"
-      @search="handleSearch"
-    />
+  <YunPage title="主播金库" subtitle="稳稳积累 · 闪耀前行" scroll-locked>
+    <view class="vault-layout">
+      <YunFixedSearch
+        v-model="searchKeyword"
+        placeholder="搜索主播昵称"
+        show-button
+        variant="vault"
+        spacer-height="110rpx"
+        @search="handleSearch"
+      />
 
-    <view class="vault-summary-space" />
-    <view class="vault-summary">
-      <text>{{ summaryText }}</text>
-      <text class="vault-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
+      <view class="vault-summary-space" />
+      <view class="vault-summary">
+        <text>{{ summaryText }}</text>
+        <text class="vault-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
+      </view>
+
+      <scroll-view
+        class="vault-list-scroll"
+        scroll-y
+        :scroll-top="listScrollTop"
+        :refresher-enabled="true"
+        :refresher-triggered="refreshing"
+        :show-scrollbar="false"
+        lower-threshold="120"
+        scroll-with-animation
+        @scroll="handleListScroll"
+        @scrolltolower="handleLoadMore"
+        @refresherrefresh="handleRefresh"
+      >
+        <view class="vault-list-content">
+          <YunListStatus
+            :loading="loading"
+            :refreshing="refreshing"
+            :loading-more="loadingMore"
+            :loaded="loaded"
+            :has-more="hasMore"
+            :has-items="!!records.length"
+            :error-message="errorMessage"
+            :load-more-error="loadMoreError"
+            loading-text="正在读取金库数据..."
+            empty-text="没有找到金库团员"
+            @retry="loadMoreError ? loadVaultRecords() : loadVaultRecords({ reset: true })"
+            @load-more="handleLoadMore"
+          >
+            <VaultCard
+              v-for="(record, index) in records"
+              :key="record.id"
+              :record="record"
+              :rank="index + 1"
+              @view="goVaultDetail"
+            />
+          </YunListStatus>
+        </view>
+      </scroll-view>
     </view>
 
-    <EphoneListStatus
-      :loading="loading"
-      :refreshing="refreshing"
-      :loading-more="loadingMore"
-      :loaded="loaded"
-      :has-more="hasMore"
-      :has-items="!!records.length"
-      :error-message="errorMessage"
-      :load-more-error="loadMoreError"
-      loading-text="正在读取金库数据..."
-      empty-text="没有找到金库团员"
-      @retry="loadMoreError ? loadVaultRecords() : loadVaultRecords({ reset: true })"
-      @load-more="handleLoadMore"
-    >
-      <VaultCard
-        v-for="(record, index) in records"
-        :key="record.id"
-        :record="record"
-        :rank="index + 1"
-        @view="goVaultDetail"
-      />
-    </EphoneListStatus>
-
-    <BackTopButton :visible="showBackTop" />
+    <BackTopButton :visible="showBackTop" :page-scroll="false" @back-top="handleBackTop" />
   </YunPage>
 </template>
 
 <style scoped lang="scss">
+.vault-layout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .vault-summary-space {
+  flex: 0 0 56rpx;
   width: 100%;
   height: 56rpx;
 }
 
 .vault-summary {
   position: fixed;
-  top: calc(var(--ephone-page-content-top, 228rpx) + 138rpx);
+  top: calc(var(--ephone-page-content-top, 228rpx) + 110rpx);
   left: 50%;
   z-index: 700;
   display: flex;
@@ -226,5 +256,15 @@ onPageScroll((event) => {
 .vault-summary .vault-fetch-time {
   color: rgba(255, 255, 255, 0.56);
   font-size: 21rpx;
+}
+
+.vault-list-scroll {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.vault-list-content {
+  padding: 18rpx 0 24rpx;
 }
 </style>

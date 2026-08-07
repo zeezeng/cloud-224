@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EphoneQuickAction } from '@/data/ephone'
+import type { EphoneQuickAction } from '@/data/yun'
 
 defineProps<{
   items: EphoneQuickAction[]

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { EphoneRankRecord } from '@/data/ephone'
+import type { EphoneRankRecord } from '@/data/yun'
 import { ENJOY_PAGE_SIZE, getEnjoyUserList, toEnjoyRankRecord } from '@/api/enjoy'
-import BackTopButton from '@/components/ephone/BackTopButton.vue'
-import EphoneFixedSearch from '@/components/ephone/EphoneFixedSearch.vue'
-import YunPage from '@/components/ephone/YunPage.vue'
-import RankingList from '@/components/ephone/RankingList.vue'
-import { formatFetchTime } from '@/utils/ephone'
+import BackTopButton from '@/components/yun/BackTopButton.vue'
+import YunFixedSearch from '@/components/yun/YunFixedSearch.vue'
+import YunPage from '@/components/yun/YunPage.vue'
+import RankingList from '@/components/yun/RankingList.vue'
+import { formatFetchTime } from '@/utils/yun'
 
 defineOptions({
   name: 'Enjoy',
@@ -15,8 +15,7 @@ definePage({
   style: {
     navigationStyle: 'custom',
     navigationBarTitleText: '乐享值',
-    enablePullDownRefresh: true,
-    onReachBottomDistance: 120,
+    disableScroll: true,
     backgroundColor: '#000000',
   },
 })
@@ -34,8 +33,10 @@ const errorMessage = ref('')
 const loadMoreError = ref('')
 const showBackTop = ref(false)
 const fetchedAt = ref('')
+const listScrollTop = ref(0)
 
 let loadGeneration = 0
+let currentListScrollTop = 0
 
 const summaryText = computed(() => {
   if (!loaded.value || loading.value || refreshing.value) {
@@ -54,7 +55,7 @@ const bottomText = computed(() => {
   if (!records.value.length) {
     return ''
   }
-  return hasMore.value ? '继续上拉加载更多' : `共 ${records.value.length} 位用户`
+  return hasMore.value ? '继续上拉加载更多' : '没有更多数据了！'
 })
 
 async function loadEnjoyUsers({ reset = false } = {}) {
@@ -143,90 +144,123 @@ function handleLoadMore() {
   loadEnjoyUsers()
 }
 
+function handleRefresh() {
+  loadEnjoyUsers({ reset: true })
+}
+
+function handleListScroll(event: { detail?: { scrollTop?: number } }) {
+  currentListScrollTop = Number(event.detail?.scrollTop || 0)
+  showBackTop.value = currentListScrollTop > 420
+}
+
+async function handleBackTop() {
+  listScrollTop.value = currentListScrollTop
+  await nextTick()
+  listScrollTop.value = 0
+}
+
 onLoad(() => {
   loadEnjoyUsers({ reset: true })
-})
-
-onPullDownRefresh(() => {
-  loadEnjoyUsers({ reset: true })
-})
-
-onReachBottom(() => {
-  handleLoadMore()
-})
-
-onPageScroll((event) => {
-  showBackTop.value = event.scrollTop > 420
 })
 </script>
 
 <template>
-  <YunPage title="乐享值" subtitle="善意发光 · 陪伴有声">
-    <EphoneFixedSearch
-      v-model="searchKeyword"
-      placeholder="搜索用户昵称/用户ID"
-      show-button
-      variant="enjoy"
-      spacer-height="138rpx"
-      @search="handleSearch"
-    />
-
-    <view class="enjoy-summary-space" />
-    <view class="enjoy-summary">
-      <text>{{ summaryText }}</text>
-      <text class="enjoy-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
-    </view>
-
-    <view v-if="refreshing && loaded" class="enjoy-refreshing">
-      <view class="i-carbon-circle-dash enjoy-refreshing-icon enjoy-spin" />
-      <text>正在刷新...</text>
-    </view>
-
-    <view v-if="loading && !records.length" class="enjoy-state">
-      <view class="i-carbon-circle-dash enjoy-state-icon enjoy-spin" />
-      <text>正在读取乐享用户...</text>
-    </view>
-
-    <view v-else-if="errorMessage" class="enjoy-state enjoy-state-error">
-      <view class="i-carbon-cloud-offline enjoy-state-icon" />
-      <text>{{ errorMessage }}</text>
-      <button class="enjoy-retry" @click="loadEnjoyUsers({ reset: true })">
-        重试
-      </button>
-    </view>
-
-    <template v-else-if="records.length">
-      <RankingList
-        :records="records"
-        value-label="乐享值"
-        :show-rank="false"
+  <YunPage title="乐享值" subtitle="善意发光 · 陪伴有声" scroll-locked>
+    <view class="enjoy-layout">
+      <YunFixedSearch
+        v-model="searchKeyword"
+        placeholder="搜索用户昵称/用户ID"
+        show-button
         variant="enjoy"
+        spacer-height="110rpx"
+        @search="handleSearch"
       />
 
-      <button class="enjoy-load-more" :disabled="loadingMore || refreshing || (!hasMore && !loadMoreError)" @click="loadMoreError ? loadEnjoyUsers() : handleLoadMore()">
-        <view v-if="loadingMore" class="i-carbon-circle-dash enjoy-load-more-icon enjoy-spin" />
-        <text>{{ bottomText }}</text>
-      </button>
-    </template>
+      <view class="enjoy-summary-space" />
+      <view class="enjoy-summary">
+        <text>{{ summaryText }}</text>
+        <text class="enjoy-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
+      </view>
 
-    <view v-else class="enjoy-state">
-      <view class="i-carbon-search-locate enjoy-state-icon" />
-      <text>没有找到这个用户</text>
+      <scroll-view
+        class="enjoy-list-scroll"
+        scroll-y
+        :scroll-top="listScrollTop"
+        :refresher-enabled="true"
+        :refresher-triggered="refreshing"
+        :show-scrollbar="false"
+        lower-threshold="120"
+        scroll-with-animation
+        @scroll="handleListScroll"
+        @scrolltolower="handleLoadMore"
+        @refresherrefresh="handleRefresh"
+      >
+        <view class="enjoy-list-content">
+          <view v-if="refreshing && loaded" class="enjoy-refreshing">
+            <view class="i-carbon-circle-dash enjoy-refreshing-icon enjoy-spin" />
+            <text>正在刷新...</text>
+          </view>
+
+          <view v-if="loading && !records.length" class="enjoy-state">
+            <view class="i-carbon-circle-dash enjoy-state-icon enjoy-spin" />
+            <text>正在读取乐享用户...</text>
+          </view>
+
+          <view v-else-if="errorMessage" class="enjoy-state enjoy-state-error">
+            <view class="i-carbon-cloud-offline enjoy-state-icon" />
+            <text>{{ errorMessage }}</text>
+            <button class="enjoy-retry" @click="loadEnjoyUsers({ reset: true })">
+              重试
+            </button>
+          </view>
+
+          <template v-else-if="records.length">
+            <RankingList
+              :records="records"
+              value-label="乐享值"
+              :show-rank="false"
+              variant="enjoy"
+            />
+
+            <view
+              class="enjoy-list-load-more"
+              :class="{ 'is-actionable': !loadingMore && (hasMore || loadMoreError) }"
+              @tap="loadMoreError ? loadEnjoyUsers() : handleLoadMore()"
+            >
+              <view v-if="loadingMore" class="i-carbon-circle-dash enjoy-list-load-more-icon enjoy-spin" />
+              <text>{{ bottomText }}</text>
+            </view>
+          </template>
+
+          <view v-else class="enjoy-state">
+            <view class="i-carbon-search-locate enjoy-state-icon" />
+            <text>没有找到这个用户</text>
+          </view>
+        </view>
+      </scroll-view>
     </view>
 
-    <BackTopButton :visible="showBackTop" />
+    <BackTopButton :visible="showBackTop" :page-scroll="false" @back-top="handleBackTop" />
   </YunPage>
 </template>
 
 <style scoped lang="scss">
+.enjoy-layout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .enjoy-summary-space {
+  flex: 0 0 56rpx;
   width: 100%;
   height: 56rpx;
 }
 
 .enjoy-summary {
   position: fixed;
-  top: calc(var(--ephone-page-content-top, 228rpx) + 138rpx);
+  top: calc(var(--ephone-page-content-top, 228rpx) + 110rpx);
   left: 50%;
   z-index: 700;
   display: flex;
@@ -251,6 +285,16 @@ onPageScroll((event) => {
 .enjoy-summary .enjoy-fetch-time {
   color: rgba(255, 255, 255, 0.56);
   font-size: 21rpx;
+}
+
+.enjoy-list-scroll {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.enjoy-list-content {
+  padding: 0 0 24rpx;
 }
 
 .enjoy-refreshing {
@@ -308,32 +352,38 @@ onPageScroll((event) => {
   border: 0;
 }
 
-.enjoy-load-more {
+.enjoy-list-load-more {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 88rpx;
-  margin-top: 20rpx;
-  gap: 12rpx;
-  border: 0;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 24rpx;
-  line-height: 88rpx;
+  margin-top: 28rpx;
+  padding: 0 32rpx;
+  gap: 16rpx;
+  color: rgba(255, 255, 255, 0.32);
+  font-size: 22rpx;
 }
 
-.enjoy-load-more::after {
-  border: 0;
+.enjoy-list-load-more::before,
+.enjoy-list-load-more::after {
+  content: '';
+  width: 64rpx;
+  height: 1rpx;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.enjoy-load-more[disabled] {
-  opacity: 1;
+.enjoy-list-load-more.is-actionable {
+  color: rgba(242, 182, 204, 0.72);
 }
 
-.enjoy-load-more-icon {
+.enjoy-list-load-more.is-actionable::before,
+.enjoy-list-load-more.is-actionable::after {
+  background: rgba(242, 182, 204, 0.22);
+}
+
+.enjoy-list-load-more-icon {
   color: var(--ephone-primary-soft);
-  font-size: 30rpx;
+  font-size: 28rpx;
 }
 
 .enjoy-spin {

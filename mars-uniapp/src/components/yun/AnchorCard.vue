@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EphoneAnchor } from '@/data/ephone'
+import type { EphoneAnchor } from '@/data/yun'
 import AnchorAvatar from './AnchorAvatar.vue'
 import StatValue from './StatValue.vue'
 
