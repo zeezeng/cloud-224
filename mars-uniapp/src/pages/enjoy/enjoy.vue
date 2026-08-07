@@ -5,6 +5,7 @@ import BackTopButton from '@/components/ephone/BackTopButton.vue'
 import EphoneFixedSearch from '@/components/ephone/EphoneFixedSearch.vue'
 import YunPage from '@/components/ephone/YunPage.vue'
 import RankingList from '@/components/ephone/RankingList.vue'
+import { formatFetchTime } from '@/utils/ephone'
 
 defineOptions({
   name: 'Enjoy',
@@ -32,17 +33,15 @@ const loaded = ref(false)
 const errorMessage = ref('')
 const loadMoreError = ref('')
 const showBackTop = ref(false)
+const fetchedAt = ref('')
 
 let loadGeneration = 0
 
 const summaryText = computed(() => {
   if (!loaded.value || loading.value || refreshing.value) {
-    return '正在同步乐享用户数据'
+    return '共 - 位'
   }
-  if (searchKeyword.value.trim()) {
-    return `找到 ${total.value} 位相关用户，已展示 ${records.value.length} 位`
-  }
-  return `已同步 ${total.value} 位乐享用户，当前展示前 ${records.value.length} 位`
+  return `共 ${total.value} 位`
 })
 
 const bottomText = computed(() => {
@@ -101,6 +100,7 @@ async function loadEnjoyUsers({ reset = false } = {}) {
     total.value = Number(data?.total || records.value.length)
     hasMore.value = records.value.length < total.value && list.length >= ENJOY_PAGE_SIZE
     page.value = requestPage + 1
+    fetchedAt.value = formatFetchTime()
   }
   catch (error) {
     if (generation !== loadGeneration) {
@@ -171,12 +171,19 @@ onPageScroll((event) => {
       @search="handleSearch"
     />
 
+    <view class="enjoy-summary-space" />
     <view class="enjoy-summary">
-      {{ summaryText }}
+      <text>{{ summaryText }}</text>
+      <text class="enjoy-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
+    </view>
+
+    <view v-if="refreshing && loaded" class="enjoy-refreshing">
+      <view class="i-carbon-circle-dash enjoy-refreshing-icon enjoy-spin" />
+      <text>正在刷新...</text>
     </view>
 
     <view v-if="loading && !records.length" class="enjoy-state">
-      <view class="i-carbon-circle-dash enjoy-state-icon" />
+      <view class="i-carbon-circle-dash enjoy-state-icon enjoy-spin" />
       <text>正在读取乐享用户...</text>
     </view>
 
@@ -197,7 +204,7 @@ onPageScroll((event) => {
       />
 
       <button class="enjoy-load-more" :disabled="loadingMore || refreshing || (!hasMore && !loadMoreError)" @click="loadMoreError ? loadEnjoyUsers() : handleLoadMore()">
-        <view v-if="loadingMore" class="i-carbon-circle-dash enjoy-load-more-icon" />
+        <view v-if="loadingMore" class="i-carbon-circle-dash enjoy-load-more-icon enjoy-spin" />
         <text>{{ bottomText }}</text>
       </button>
     </template>
@@ -212,10 +219,53 @@ onPageScroll((event) => {
 </template>
 
 <style scoped lang="scss">
+.enjoy-summary-space {
+  width: 100%;
+  height: 56rpx;
+}
+
 .enjoy-summary {
-  margin-top: 4rpx;
+  position: fixed;
+  top: calc(var(--ephone-page-content-top, 228rpx) + 138rpx);
+  left: 50%;
+  z-index: 700;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  width: 100%;
+  max-width: 960rpx;
+  min-height: 56rpx;
+  padding: 8rpx 40rpx;
+  box-sizing: border-box;
+  transform: translateX(-50%);
+  background: var(--ephone-bg-scene);
+  background-size: 100vw 100vh;
+  background-position: 0 0;
+  background-attachment: fixed;
   color: rgba(255, 255, 255, 0.56);
   font-size: 23rpx;
+}
+
+.enjoy-summary .enjoy-fetch-time {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 21rpx;
+}
+
+.enjoy-refreshing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  min-height: 58rpx;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 23rpx;
+}
+
+.enjoy-refreshing-icon {
+  color: var(--ephone-primary-soft);
+  font-size: 30rpx;
 }
 
 .enjoy-state {
@@ -284,5 +334,15 @@ onPageScroll((event) => {
 .enjoy-load-more-icon {
   color: var(--ephone-primary-soft);
   font-size: 30rpx;
+}
+
+.enjoy-spin {
+  animation: enjoy-spin 1.1s linear infinite;
+}
+
+@keyframes enjoy-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

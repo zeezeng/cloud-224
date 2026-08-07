@@ -60,7 +60,10 @@ function handleSearch(value: string) {
   z-index: 750;
   width: 100%;
   max-width: 960rpx;
-  background: var(--ephone-bg-solid, #000000);
+  background: var(--ephone-bg-scene);
+  background-size: 100vw 100vh;
+  background-position: 0 0;
+  background-attachment: fixed;
   transform: translateX(-50%);
   pointer-events: none;
 }

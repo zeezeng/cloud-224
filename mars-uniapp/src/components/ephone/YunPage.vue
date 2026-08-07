@@ -62,6 +62,9 @@ onMounted(() => {
   min-height: 100vh;
   overflow-x: hidden;
   background: var(--ephone-bg-scene);
+  background-size: 100vw 100vh;
+  background-position: 0 0;
+  background-attachment: fixed;
   color: var(--ephone-text);
 }
 

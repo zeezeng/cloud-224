@@ -78,15 +78,15 @@ function handleBottomTap() {
 
   <slot v-if="hasItems" />
 
-  <button
+  <view
     v-if="hasItems"
     class="ephone-list-load-more"
-    :disabled="loadingMore || (!hasMore && !loadMoreError)"
+    :class="{ 'is-actionable': !loadingMore && (props.hasMore || props.loadMoreError) }"
     @tap="handleBottomTap"
   >
     <view v-if="loadingMore" class="i-carbon-circle-dash ephone-list-load-more-icon ephone-list-spin" />
     <text>{{ bottomText }}</text>
-  </button>
+  </view>
 </template>
 
 <style scoped lang="scss">
@@ -155,26 +155,32 @@ function handleBottomTap() {
   align-items: center;
   justify-content: center;
   min-height: 88rpx;
-  margin-top: 20rpx;
-  gap: 12rpx;
-  border: 0;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 24rpx;
-  line-height: 88rpx;
+  margin-top: 28rpx;
+  padding: 0 32rpx;
+  gap: 16rpx;
+  color: rgba(255, 255, 255, 0.32);
+  font-size: 22rpx;
 }
 
+.ephone-list-load-more::before,
 .ephone-list-load-more::after {
-  border: 0;
+  content: '';
+  width: 64rpx;
+  height: 1rpx;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.ephone-list-load-more[disabled] {
-  opacity: 1;
+.ephone-list-load-more.is-actionable {
+  color: rgba(242, 182, 204, 0.72);
+}
+
+.ephone-list-load-more.is-actionable::before,
+.ephone-list-load-more.is-actionable::after {
+  background: rgba(242, 182, 204, 0.22);
 }
 
 .ephone-list-load-more-icon {
-  font-size: 30rpx;
+  font-size: 28rpx;
 }
 
 .ephone-list-spin {

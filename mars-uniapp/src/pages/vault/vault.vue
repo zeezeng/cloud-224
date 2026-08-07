@@ -40,12 +40,9 @@ let loadGeneration = 0
 
 const summaryText = computed(() => {
   if (!loaded.value || loading.value || refreshing.value) {
-    return '正在同步金库团员数据'
+    return '共 - 位'
   }
-  if (searchKeyword.value.trim()) {
-    return `找到 ${total.value} 位相关团员，已展示 ${records.value.length} 位`
-  }
-  return `已按余额从高到低同步 ${total.value} 位金库团员`
+  return `共 ${total.value} 位`
 })
 
 async function loadVaultRecords({ reset = false } = {}) {
@@ -163,6 +160,7 @@ onPageScroll((event) => {
       @search="handleSearch"
     />
 
+    <view class="vault-summary-space" />
     <view class="vault-summary">
       <text>{{ summaryText }}</text>
       <text class="vault-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
@@ -196,14 +194,31 @@ onPageScroll((event) => {
 </template>
 
 <style scoped lang="scss">
+.vault-summary-space {
+  width: 100%;
+  height: 56rpx;
+}
+
 .vault-summary {
+  position: fixed;
+  top: calc(var(--ephone-page-content-top, 228rpx) + 138rpx);
+  left: 50%;
+  z-index: 700;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 6rpx;
-  min-height: 38rpx;
-  margin-top: 4rpx;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  width: 100%;
+  max-width: 960rpx;
+  min-height: 56rpx;
+  padding: 8rpx 40rpx;
+  box-sizing: border-box;
+  transform: translateX(-50%);
+  background: var(--ephone-bg-scene);
+  background-size: 100vw 100vh;
+  background-position: 0 0;
+  background-attachment: fixed;
   color: rgba(255, 255, 255, 0.56);
   font-size: 23rpx;
 }
