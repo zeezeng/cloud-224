@@ -365,6 +365,145 @@ INSERT INTO `student` VALUES (8, '11', '1', 1, NULL, '1', '1', '/api/files/image
 INSERT INTO `student` VALUES (9, '1', '1', 1, '2026-03-03', '1', '1', '/api/files/images/2026/03/01/0f6511a67ffb431abf18fa218066d992.jpg', 1, 1, 0, '2026-02-28 12:16:13', '2026-02-28 12:16:13');
 
 -- ----------------------------
+-- Table structure for app_banner
+-- ----------------------------
+DROP TABLE IF EXISTS `app_banner`;
+CREATE TABLE `app_banner`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `title` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '标题',
+  `description` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '描述',
+  `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '图片地址',
+  `jump_type` tinyint NULL DEFAULT 0 COMMENT '跳转类型(0-不跳转 1-小程序页面 2-网页URL)',
+  `jump_target` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '跳转目标',
+  `sort` int NULL DEFAULT 0 COMMENT '排序值，越小越靠前',
+  `status` tinyint NULL DEFAULT 1 COMMENT '状态(0-禁用 1-启用)',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint NULL DEFAULT NULL COMMENT '创建人',
+  `update_by` bigint NULL DEFAULT NULL COMMENT '更新人',
+  `deleted` tinyint NULL DEFAULT 0 COMMENT '删除标识(0-未删除 1-已删除)',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_status_sort`(`status` ASC, `sort` ASC, `id` DESC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'App首页轮播图' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of app_banner
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for yun_anchor
+-- ----------------------------
+DROP TABLE IF EXISTS `yun_anchor`;
+CREATE TABLE `yun_anchor`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `anchor_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '主播业务唯一ID，当前等同播酱/斗鱼房间号',
+  `room_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '直播间号',
+  `anchor_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '主播名称',
+  `avatar_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '主播头像',
+  `room_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '直播间标题',
+  `category_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '分类ID',
+  `category_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '分类名称',
+  `guild_no` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '公会编号',
+  `guild_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '公会名称',
+  `bio` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '主播简介',
+  `room_status` int NULL DEFAULT NULL COMMENT '房间状态',
+  `last_start_time` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '最近开播时间',
+  `status` tinyint NULL DEFAULT 1 COMMENT '状态(0-禁用 1-启用)',
+  `show_rank` tinyint NULL DEFAULT 1 COMMENT '是否在排行展示(0-否 1-是)',
+  `sort` int NULL DEFAULT 0 COMMENT '排序值，越小越靠前',
+  `data_source` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'MANUAL' COMMENT '数据来源(MANUAL/BOJIANG/DOSEEING)',
+  `auto_update_profile` tinyint NULL DEFAULT 1 COMMENT '同步时是否自动更新主播资料(0-否 1-是)',
+  `last_profile_sync_time` datetime NULL DEFAULT NULL COMMENT '最近资料同步时间',
+  `last_gift_sync_time` datetime NULL DEFAULT NULL COMMENT '最近礼物同步时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint NULL DEFAULT NULL COMMENT '创建人',
+  `update_by` bigint NULL DEFAULT NULL COMMENT '更新人',
+  `deleted` tinyint NULL DEFAULT 0 COMMENT '删除标识(0-未删除 1-已删除)',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_anchor_id`(`anchor_id` ASC) USING BTREE,
+  INDEX `idx_status_rank_sort`(`status` ASC, `show_rank` ASC, `sort` ASC, `id` DESC) USING BTREE,
+  INDEX `idx_guild_name`(`guild_name` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '云224主播资料' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of yun_anchor
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for yun_anchor_gift_stat
+-- ----------------------------
+DROP TABLE IF EXISTS `yun_anchor_gift_stat`;
+CREATE TABLE `yun_anchor_gift_stat`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `anchor_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '主播业务唯一ID',
+  `room_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '直播间号',
+  `period_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '统计周期(DAY/MONTH)',
+  `period_key` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '统计周期键',
+  `external_rank_no` int NULL DEFAULT NULL COMMENT '播酱全站排名',
+  `gift_total_value` decimal(14,2) NULL DEFAULT 0.00 COMMENT '礼物总值',
+  `paid_gift_value` decimal(14,2) NULL DEFAULT 0.00 COMMENT '付费礼物金额',
+  `bag_gift_value` decimal(14,2) NULL DEFAULT 0.00 COMMENT '背包礼物金额',
+  `fishball_gift_count` decimal(18,2) NULL DEFAULT 0.00 COMMENT '鱼丸礼物数量',
+  `gift_user_count` int NULL DEFAULT NULL COMMENT '送礼人数',
+  `active_audience_count` int NULL DEFAULT NULL COMMENT '活跃观众',
+  `danmu_count` int NULL DEFAULT NULL COMMENT '弹幕数量',
+  `danmu_user_count` int NULL DEFAULT NULL COMMENT '弹幕人数',
+  `duration_text` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '直播时长描述',
+  `room_status` int NULL DEFAULT NULL COMMENT '房间状态',
+  `lived` tinyint NULL DEFAULT NULL COMMENT '是否开播过',
+  `last_start_time` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '最近开播时间',
+  `source_update_time` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '源数据更新时间/数据源标识',
+  `raw_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '原始响应行JSON',
+  `synced_at` datetime NULL DEFAULT NULL COMMENT '同步时间',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint NULL DEFAULT NULL COMMENT '创建人',
+  `update_by` bigint NULL DEFAULT NULL COMMENT '更新人',
+  `deleted` tinyint NULL DEFAULT 0 COMMENT '删除标识(0-未删除 1-已删除)',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_anchor_period`(`anchor_id` ASC, `period_type` ASC, `period_key` ASC) USING BTREE,
+  INDEX `idx_period_rank`(`period_type` ASC, `period_key` ASC, `gift_total_value` DESC, `anchor_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '云224主播礼物统计快照' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of yun_anchor_gift_stat
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for yun_sync_log
+-- ----------------------------
+DROP TABLE IF EXISTS `yun_sync_log`;
+CREATE TABLE `yun_sync_log`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `sync_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '同步类型',
+  `period_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '统计周期',
+  `period_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '统计周期键',
+  `trigger_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '触发类型(MANUAL/AUTO)',
+  `status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '同步状态',
+  `total_count` int NULL DEFAULT 0 COMMENT '总数量',
+  `success_count` int NULL DEFAULT 0 COMMENT '成功数量',
+  `fail_count` int NULL DEFAULT 0 COMMENT '失败数量',
+  `error_message` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '错误信息',
+  `started_at` datetime NULL DEFAULT NULL COMMENT '开始时间',
+  `ended_at` datetime NULL DEFAULT NULL COMMENT '结束时间',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint NULL DEFAULT NULL COMMENT '创建人',
+  `update_by` bigint NULL DEFAULT NULL COMMENT '更新人',
+  `deleted` tinyint NULL DEFAULT 0 COMMENT '删除标识(0-未删除 1-已删除)',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_sync_time`(`sync_type` ASC, `started_at` DESC) USING BTREE,
+  INDEX `idx_period`(`period_type` ASC, `period_key` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '云224同步日志' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of yun_sync_log
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for sys_api_access_log
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_api_access_log`;
@@ -2973,7 +3112,7 @@ CREATE TABLE `sys_job`  (
   `update_by` bigint NULL DEFAULT NULL COMMENT '更新人',
   `deleted` tinyint NULL DEFAULT 0 COMMENT '删除标识(0-未删除 1-已删除)',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '定时任务表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '定时任务表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_job
@@ -2981,6 +3120,8 @@ CREATE TABLE `sys_job`  (
 INSERT INTO `sys_job` VALUES (1, '系统默认（无参）', 'DEFAULT', 'sampleTask.noParams', '0/10 * * * * ?', 3, 1, 0, '无参数的示例任务', '2026-01-29 22:42:08', '2026-01-29 22:42:08', NULL, NULL, 0);
 INSERT INTO `sys_job` VALUES (2, '系统默认（有参）', 'DEFAULT', 'sampleTask.withParams(\'hello\')', '0/15 * * * * ?', 3, 1, 0, '有参数的示例任务', '2026-01-29 22:42:08', '2026-01-29 22:42:08', NULL, NULL, 0);
 INSERT INTO `sys_job` VALUES (3, '测试任务', 'DEFAULT', 'sampleTask.noParams', '0/5 * * * * ?', 3, 1, 0, '111', '2026-01-29 22:59:47', '2026-01-29 22:59:47', 1, 1, 0);
+INSERT INTO `sys_job` VALUES (4, '主播今日及本月同步', 'YUN224', 'bojiangSyncTask.syncTodayAndMonth', '0 0/20 * * * ?', 3, 1, 0, '同步主播今日和本月礼物榜，按主播数据源配置执行，建议每10-30分钟执行一次', '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_job` VALUES (5, '主播昨日同步', 'YUN224', 'bojiangSyncTask.syncYesterday', '0 10 0 * * ?', 3, 1, 0, '同步主播昨日礼物榜，按主播数据源配置执行，建议每天00:10后执行一次', '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
 
 -- ----------------------------
 -- Table structure for sys_job_log
@@ -3099,7 +3240,7 @@ CREATE TABLE `sys_menu`  (
   `update_by` bigint NULL DEFAULT NULL COMMENT '更新人',
   `deleted` tinyint NULL DEFAULT 0 COMMENT '删除标识(0-未删除 1-已删除)',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 333 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 347 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '菜单表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_menu
@@ -3260,6 +3401,20 @@ INSERT INTO `sys_menu` VALUES (329, 327, '学生表详情', 3, NULL, NULL, 'syst
 INSERT INTO `sys_menu` VALUES (330, 327, '学生表新增', 3, NULL, NULL, 'system:student:add', NULL, 3, 1, 1, 0, '2026-03-01 12:20:17', '2026-03-01 12:20:17', 1, 1, 0);
 INSERT INTO `sys_menu` VALUES (331, 327, '学生表修改', 3, NULL, NULL, 'system:student:edit', NULL, 4, 1, 1, 0, '2026-03-01 12:20:17', '2026-03-01 12:20:17', 1, 1, 0);
 INSERT INTO `sys_menu` VALUES (332, 327, '学生表删除', 3, NULL, NULL, 'system:student:remove', NULL, 5, 1, 1, 0, '2026-03-01 12:20:17', '2026-03-01 12:20:17', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (333, 0, '云224管理', 1, '/yun', NULL, NULL, 'CloudOutline', 8, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (334, 333, '首页轮播图', 2, '/yun/banner', '/yun/banner/index', 'yun:banner:list', 'ImageOutline', 1, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (335, 334, '轮播图列表', 3, NULL, NULL, 'yun:banner:list', NULL, 1, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (336, 334, '轮播图详情', 3, NULL, NULL, 'yun:banner:query', NULL, 2, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (337, 334, '轮播图新增', 3, NULL, NULL, 'yun:banner:add', NULL, 3, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (338, 334, '轮播图修改', 3, NULL, NULL, 'yun:banner:edit', NULL, 4, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (339, 334, '轮播图删除', 3, NULL, NULL, 'yun:banner:remove', NULL, 5, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (340, 333, '主播管理', 2, '/yun/anchor', '/yun/anchor/index', 'yun:anchor:list', 'PersonOutline', 2, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (341, 340, '主播列表', 3, NULL, NULL, 'yun:anchor:list', NULL, 1, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (342, 340, '主播详情', 3, NULL, NULL, 'yun:anchor:query', NULL, 2, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (343, 340, '主播新增', 3, NULL, NULL, 'yun:anchor:add', NULL, 3, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (344, 340, '主播修改', 3, NULL, NULL, 'yun:anchor:edit', NULL, 4, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (345, 340, '主播删除', 3, NULL, NULL, 'yun:anchor:remove', NULL, 5, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (346, 340, '主播同步', 3, NULL, NULL, 'yun:anchor:sync', NULL, 6, 1, 1, 0, '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
 
 -- ----------------------------
 -- Table structure for sys_notice
@@ -3573,7 +3728,7 @@ CREATE TABLE `sys_role_menu`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_role_id`(`role_id` ASC) USING BTREE,
   INDEX `idx_menu_id`(`menu_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 8844 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色菜单关联表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 8858 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色菜单关联表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_role_menu
@@ -3792,6 +3947,20 @@ INSERT INTO `sys_role_menu` VALUES (8840, 1, 329);
 INSERT INTO `sys_role_menu` VALUES (8841, 1, 330);
 INSERT INTO `sys_role_menu` VALUES (8842, 1, 331);
 INSERT INTO `sys_role_menu` VALUES (8843, 1, 332);
+INSERT INTO `sys_role_menu` VALUES (8844, 1, 333);
+INSERT INTO `sys_role_menu` VALUES (8845, 1, 334);
+INSERT INTO `sys_role_menu` VALUES (8846, 1, 335);
+INSERT INTO `sys_role_menu` VALUES (8847, 1, 336);
+INSERT INTO `sys_role_menu` VALUES (8848, 1, 337);
+INSERT INTO `sys_role_menu` VALUES (8849, 1, 338);
+INSERT INTO `sys_role_menu` VALUES (8850, 1, 339);
+INSERT INTO `sys_role_menu` VALUES (8851, 1, 340);
+INSERT INTO `sys_role_menu` VALUES (8852, 1, 341);
+INSERT INTO `sys_role_menu` VALUES (8853, 1, 342);
+INSERT INTO `sys_role_menu` VALUES (8854, 1, 343);
+INSERT INTO `sys_role_menu` VALUES (8855, 1, 344);
+INSERT INTO `sys_role_menu` VALUES (8856, 1, 345);
+INSERT INTO `sys_role_menu` VALUES (8857, 1, 346);
 
 -- ----------------------------
 -- Table structure for sys_server

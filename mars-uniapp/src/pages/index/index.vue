@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import type { HomeBanner } from '@/api/banner'
+import { getHomeBannerList, resolveBannerImageUrl } from '@/api/banner'
 import { ephoneAnchors, homeQuickActions, rankingTypeTabs } from '@/data/yun'
 import { formatCompactNumber } from '@/utils/yun'
 import CapsuleTabs from '@/components/yun/CapsuleTabs.vue'
 import YunPanel from '@/components/yun/YunPanel.vue'
 import YunPage from '@/components/yun/YunPage.vue'
-import HeroBanner from '@/components/yun/HeroBanner.vue'
 import QuickGrid from '@/components/yun/QuickGrid.vue'
 import RankBadge from '@/components/yun/RankBadge.vue'
 import AnchorAvatar from '@/components/yun/AnchorAvatar.vue'
@@ -23,17 +24,105 @@ definePage({
 })
 
 const topAnchors = ephoneAnchors.slice(0, 3)
+const fallbackBanner: HomeBanner = {
+  id: 0,
+  title: '闪耀舞台',
+  description: '团结 · 奋进 · 梦想',
+  imageUrl: '/static/ephone/home-stage.png',
+  jumpType: 0,
+}
+const homeBanners = ref<HomeBanner[]>([fallbackBanner])
+const tabbarPages = new Set([
+  'pages/index/index',
+  'pages/ranking/ranking',
+  'pages/enjoy/enjoy',
+  'pages/vault/vault',
+])
+
+onMounted(() => {
+  loadHomeBanners()
+})
+
+async function loadHomeBanners() {
+  try {
+    const list = await getHomeBannerList()
+    homeBanners.value = Array.isArray(list) && list.length > 0 ? list : [fallbackBanner]
+  }
+  catch (error) {
+    console.error('首页轮播图加载失败', error)
+    homeBanners.value = [fallbackBanner]
+  }
+}
+
+function getBannerImageUrl(banner: HomeBanner) {
+  return resolveBannerImageUrl(banner.imageUrl) || fallbackBanner.imageUrl || ''
+}
+
+function normalizePagePath(path?: string) {
+  const value = String(path || '').trim()
+  if (!value) {
+    return ''
+  }
+  return value.startsWith('/') ? value : `/${value}`
+}
+
+function isTabbarPage(path: string) {
+  return tabbarPages.has(path.startsWith('/') ? path.slice(1) : path)
+}
+
+function openWebUrl(url: string) {
+  // #ifdef H5
+  window.open(url, '_blank')
+  // #endif
+
+  // #ifndef H5
+  uni.navigateTo({
+    url: `/pages/webview/webview?url=${encodeURIComponent(url)}`,
+  })
+  // #endif
+}
+
+function handleBannerTap(banner: HomeBanner) {
+  if (banner.jumpType === 1) {
+    const path = normalizePagePath(banner.jumpTarget)
+    if (!path) {
+      return
+    }
+    const navigate = isTabbarPage(path) ? uni.switchTab : uni.navigateTo
+    navigate({ url: path })
+    return
+  }
+
+  if (banner.jumpType === 2) {
+    const url = String(banner.jumpTarget || '').trim()
+    if (/^https?:\/\//i.test(url)) {
+      openWebUrl(url)
+    }
+  }
+}
 </script>
 
 <template>
   <YunPage title="云224" subtitle="向阳而生 · 热爱同行 · 闪闪发光">
-    <HeroBanner
-      title="闪耀舞台"
-      subtitle="团结 · 奋进 · 梦想"
-      image="/static/ephone/home-stage.png"
-      alt="闪耀舞台皇冠横幅"
-      image-only
-    />
+    <swiper
+      class="home-banner-swiper"
+      :indicator-dots="homeBanners.length > 1"
+      circular
+      autoplay
+      :interval="4200"
+      :duration="360"
+    >
+      <swiper-item v-for="banner in homeBanners" :key="banner.id || banner.imageUrl">
+        <view class="home-banner-slide" @tap="handleBannerTap(banner)">
+          <image
+            class="home-banner-image"
+            :src="getBannerImageUrl(banner)"
+            :alt="banner.title || '首页轮播图'"
+            mode="aspectFill"
+          />
+        </view>
+      </swiper-item>
+    </swiper>
 
     <view class="home-notice">
       <view class="i-carbon-volume-up notice-icon" />
@@ -71,6 +160,26 @@ const topAnchors = ephoneAnchors.slice(0, 3)
 </template>
 
 <style scoped lang="scss">
+.home-banner-swiper {
+  height: 238rpx;
+  margin-top: 26rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.home-banner-slide,
+.home-banner-image {
+  width: 100%;
+  height: 100%;
+}
+
+.home-banner-slide {
+  overflow: hidden;
+  border-radius: 28rpx;
+}
+
 .home-notice {
   display: flex;
   align-items: center;

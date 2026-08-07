@@ -19,6 +19,10 @@
             <groupId>com.mars</groupId>
             <artifactId>mars-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.mars</groupId>
+            <artifactId>mars-biz</artifactId>
+        </dependency>
 
         <!-- MyBatis Plus -->
         <dependency>

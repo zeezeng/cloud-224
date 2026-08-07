@@ -33,12 +33,6 @@ export const nativeTabbarList: NativeTabBarItem[] = [
     text: '首页',
   },
   {
-    iconPath: 'static/tabbar/personal.png',
-    selectedIconPath: 'static/tabbar/personalHL.png',
-    pagePath: tabPagePath('pages/anchors/anchors'),
-    text: '主播',
-  },
-  {
     iconPath: 'static/tabbar/example.png',
     selectedIconPath: 'static/tabbar/exampleHL.png',
     pagePath: tabPagePath('pages/ranking/ranking'),
@@ -66,12 +60,6 @@ export const customTabbarList: CustomTabBarItem[] = [
     pagePath: tabPagePath('pages/index/index'),
     iconType: 'unocss',
     icon: 'i-carbon-home',
-  },
-  {
-    text: '主播',
-    pagePath: tabPagePath('pages/anchors/anchors'),
-    iconType: 'unocss',
-    icon: 'i-carbon-user-avatar',
   },
   {
     text: '排行',

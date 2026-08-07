@@ -85,6 +85,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '文件配置', icon: 'CloudOutline' }
       },
       {
+        path: 'yun/banner',
+        name: 'YunBanner',
+        component: () => import('@/views/yun/banner/index.vue'),
+        meta: { title: '首页轮播图', icon: 'ImageOutline' }
+      },
+      {
+        path: 'yun/anchor',
+        name: 'YunAnchor',
+        component: () => import('@/views/yun/anchor/index.vue'),
+        meta: { title: '主播管理', icon: 'PersonOutline' }
+      },
+      {
         path: 'system/customer',
         name: 'Customer',
         component: () => import('@/views/system/customer/index.vue'),

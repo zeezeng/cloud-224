@@ -7,6 +7,10 @@ withDefaults(defineProps<{
   active: 0,
   compact: false,
 })
+
+const emit = defineEmits<{
+  select: [index: number]
+}>()
 </script>
 
 <template>
@@ -16,6 +20,7 @@ withDefaults(defineProps<{
       :key="item"
       class="capsule-tab"
       :class="{ 'capsule-tab-active': index === active }"
+      @tap="emit('select', index)"
     >
       {{ item }}
     </view>

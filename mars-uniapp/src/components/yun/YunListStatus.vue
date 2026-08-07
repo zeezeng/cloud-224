@@ -71,7 +71,7 @@ function handleBottomTap() {
     </button>
   </view>
 
-  <view v-else-if="loaded && !hasItems && !refreshing && !loading" class="ephone-list-state">
+  <view v-else-if="loaded && !hasItems && !loading" class="ephone-list-state">
     <view :class="emptyIcon" class="ephone-list-state-icon" />
     <text>{{ emptyText }}</text>
   </view>

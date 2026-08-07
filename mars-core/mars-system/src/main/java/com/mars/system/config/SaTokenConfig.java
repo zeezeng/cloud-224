@@ -29,6 +29,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                             "/api/auth/sms-code",           // 短信验证码
                             "/api/app/auth/login",          // App端登录
                             "/api/app/auth/sms-code",       // App端短信验证码
+                            "/api/app/banner/list",         // App端首页轮播图
+                            "/api/app/ranking/**",          // App端公开排行
                             "/api/wechat/miniprogram/**",   // 微信小程序接口
                             "/api/mall/home",               // 小程序首页
                             "/api/mall/login",              // 小程序登录

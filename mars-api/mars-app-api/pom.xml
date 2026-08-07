@@ -37,6 +37,10 @@
         </dependency>
         <dependency>
             <groupId>com.mars</groupId>
+            <artifactId>mars-biz</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mars</groupId>
             <artifactId>mars-wechat</artifactId>
         </dependency>
 
