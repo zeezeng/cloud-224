@@ -197,7 +197,7 @@ onPageScroll((event) => {
               直播间号：{{ record.roomId }}
             </view>
             <view class="vault-user-meta">
-              数据获取时间：{{ fetchedAt || '同步中...' }}
+              更新时间：{{ fetchedAt || '--:--:--' }}
             </view>
           </view>
         </view>

@@ -392,6 +392,31 @@ CREATE TABLE `app_banner`  (
 -- ----------------------------
 
 -- ----------------------------
+-- Table structure for app_notice
+-- ----------------------------
+DROP TABLE IF EXISTS `app_notice`;
+CREATE TABLE `app_notice`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '公告标题',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '公告内容',
+  `sort` int NULL DEFAULT 0 COMMENT '排序值，越小越靠前',
+  `status` tinyint NULL DEFAULT 0 COMMENT '状态(0-下线 1-发布)',
+  `published_at` datetime NULL DEFAULT NULL COMMENT '发布时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` bigint NULL DEFAULT NULL COMMENT '创建人',
+  `update_by` bigint NULL DEFAULT NULL COMMENT '更新人',
+  `deleted` tinyint NULL DEFAULT 0 COMMENT '删除标识(0-未删除 1-已删除)',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_status_sort_publish`(`status` ASC, `sort` ASC, `published_at` DESC, `id` DESC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'App首页公告' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of app_notice
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for yun_anchor
 -- ----------------------------
 DROP TABLE IF EXISTS `yun_anchor`;
@@ -4160,5 +4185,17 @@ INSERT INTO `sys_user_role` VALUES (25, 7, 2);
 INSERT INTO `sys_user_role` VALUES (37, 10, 2);
 INSERT INTO `sys_user_role` VALUES (45, 1, 1);
 INSERT INTO `sys_user_role` VALUES (46, 3, 2);
+INSERT INTO `sys_menu` VALUES (347, 333, '首页公告', 2, '/yun/notice', '/yun/notice/index', 'yun:notice:list', 'NotificationsOutline', 2, 1, 1, 0, '2026-08-08 00:00:00', '2026-08-08 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (348, 347, '公告列表', 3, NULL, NULL, 'yun:notice:list', NULL, 1, 1, 1, 0, '2026-08-08 00:00:00', '2026-08-08 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (349, 347, '公告详情', 3, NULL, NULL, 'yun:notice:query', NULL, 2, 1, 1, 0, '2026-08-08 00:00:00', '2026-08-08 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (350, 347, '公告新增', 3, NULL, NULL, 'yun:notice:add', NULL, 3, 1, 1, 0, '2026-08-08 00:00:00', '2026-08-08 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (351, 347, '公告修改', 3, NULL, NULL, 'yun:notice:edit', NULL, 4, 1, 1, 0, '2026-08-08 00:00:00', '2026-08-08 00:00:00', 1, 1, 0);
+INSERT INTO `sys_menu` VALUES (352, 347, '公告删除', 3, NULL, NULL, 'yun:notice:remove', NULL, 5, 1, 1, 0, '2026-08-08 00:00:00', '2026-08-08 00:00:00', 1, 1, 0);
+INSERT INTO `sys_role_menu` VALUES (8858, 1, 347);
+INSERT INTO `sys_role_menu` VALUES (8859, 1, 348);
+INSERT INTO `sys_role_menu` VALUES (8860, 1, 349);
+INSERT INTO `sys_role_menu` VALUES (8861, 1, 350);
+INSERT INTO `sys_role_menu` VALUES (8862, 1, 351);
+INSERT INTO `sys_role_menu` VALUES (8863, 1, 352);
 
 SET FOREIGN_KEY_CHECKS = 1;

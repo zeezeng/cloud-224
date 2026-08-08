@@ -169,6 +169,30 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void updateStatus(Long id, Integer status) {
+        if (id == null) {
+            throw new BusinessException("主播ID不能为空");
+        }
+        YunAnchor anchor = new YunAnchor();
+        anchor.setId(id);
+        anchor.setStatus(status);
+        this.updateById(anchor);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateShowRank(Long id, Integer showRank) {
+        if (id == null) {
+            throw new BusinessException("主播ID不能为空");
+        }
+        YunAnchor anchor = new YunAnchor();
+        anchor.setId(id);
+        anchor.setShowRank(showRank);
+        this.updateById(anchor);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void update(YunAnchor anchor) {
         if (anchor == null || anchor.getId() == null) {
             throw new BusinessException("主播ID不能为空");

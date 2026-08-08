@@ -250,7 +250,7 @@ const columns: DataTableColumns<AppBanner> = [
         ? h(NImage, {
             src: row.imageUrl,
             width: 126,
-            height: 40,
+            height: 63,
             objectFit: 'cover',
             style: { borderRadius: '6px' }
           })

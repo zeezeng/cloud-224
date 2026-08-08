@@ -92,13 +92,14 @@
       </div>
 
       <n-data-table
+        size="small"
         :columns="columns"
         :data="tableData"
         :loading="loading"
         :pagination="pagination"
         remote
         :row-key="row => row.id"
-        :scroll-x="1810"
+        :scroll-x="1320"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
         @update:checked-row-keys="handleCheck"
@@ -290,6 +291,7 @@ import {
   NIcon,
   NSelect,
   NSpace,
+  NSwitch,
   NTag,
   useDialog,
   useMessage,
@@ -306,7 +308,7 @@ import {
   SearchOutline,
   TrashOutline
 } from '@vicons/ionicons5'
-import { anchorApi, type AnchorDataSource, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunSyncProgress, type YunSyncResult } from '@/api/anchor'
+import { anchorApi, type AnchorDataSource, type AnchorFlag, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunSyncProgress, type YunSyncResult } from '@/api/anchor'
 import { useUserStore } from '@/stores/user'
 
 const message = useMessage()
@@ -431,6 +433,8 @@ const batchProgress = reactive({
   fail: 0,
   errors: [] as string[]
 })
+const statusUpdatingIds = ref<number[]>([])
+const showRankUpdatingIds = ref<number[]>([])
 
 const batchProgressPercentage = computed(() => {
   if (batchProgress.total <= 0) {
@@ -439,18 +443,34 @@ const batchProgressPercentage = computed(() => {
   return Math.min(100, Math.round((batchProgress.completed / batchProgress.total) * 100))
 })
 
+function updateRowLoading(list: { value: number[] }, id: number, loading: boolean) {
+  list.value = loading
+    ? Array.from(new Set([...list.value, id]))
+    : list.value.filter(item => item !== id)
+}
+
+function isRowLoading(list: { value: number[] }, id?: number) {
+  return !!id && list.value.includes(id)
+}
+
+function refreshAnchorRows() {
+  void loadData().catch((error) => {
+    console.error('主播列表刷新失败', error)
+  })
+}
+
 const columns: DataTableColumns<YunAnchorPageRow> = [
   { type: 'selection' },
   {
     title: '主播',
     key: 'anchorName',
-    minWidth: 210,
+    width: 128,
     render(row) {
       return h('div', { class: 'anchor-cell' }, [
         h(NAvatar, {
           src: row.avatarUrl || undefined,
           round: true,
-          size: 40,
+          size: 32,
           fallbackSrc: '',
         }),
         h('div', { class: 'anchor-cell-main' }, [
@@ -460,21 +480,21 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
       ])
     }
   },
-  { title: '房间号', key: 'roomId', width: 120, render: row => row.roomId || '-' },
+  { title: '房间号', key: 'roomId', width: 68, render: row => row.roomId || '-' },
   {
     title: '数据源',
     key: 'dataSource',
-    width: 100,
+    width: 68,
     render(row) {
       return h(NTag, { size: 'small', type: row.dataSource === 'DOSEEING' ? 'success' : row.dataSource === 'BOJIANG' ? 'info' : 'default' }, { default: () => dataSourceLabel(row.dataSource) })
     }
   },
-  { title: '公会', key: 'guildName', minWidth: 150, ellipsis: { tooltip: true }, render: row => row.guildName || '-' },
-  { title: '分类', key: 'categoryName', width: 130, ellipsis: { tooltip: true }, render: row => row.categoryName || '-' },
+  { title: '公会', key: 'guildName', width: 72, ellipsis: { tooltip: true }, render: row => row.guildName || '-' },
+  { title: '分类', key: 'categoryName', width: 72, ellipsis: { tooltip: true }, render: row => row.categoryName || '-' },
   {
     title: '今日礼物',
     key: 'todayGiftValue',
-    width: 130,
+    width: 84,
     render(row) {
       return formatMoney(row.todayGiftValue)
     }
@@ -482,7 +502,7 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
   {
     title: '昨日礼物',
     key: 'yesterdayGiftValue',
-    width: 130,
+    width: 84,
     render(row) {
       return formatMoney(row.yesterdayGiftValue)
     }
@@ -490,7 +510,7 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
   {
     title: '本月礼物',
     key: 'monthGiftValue',
-    width: 130,
+    width: 84,
     render(row) {
       return formatMoney(row.monthGiftValue)
     }
@@ -498,25 +518,51 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
   {
     title: '状态',
     key: 'status',
-    width: 90,
+    width: 92,
     render(row) {
-      return h(NTag, { type: row.status === 1 ? 'success' : 'default', size: 'small' }, { default: () => row.status === 1 ? '启用' : '禁用' })
+      if (!hasPermission('yun:anchor:edit')) {
+        return h(NTag, { type: row.status === 1 ? 'success' : 'default', size: 'small' }, { default: () => row.status === 1 ? '启用' : '禁用' })
+      }
+      const loading = isRowLoading(statusUpdatingIds, row.id)
+      return h(NSwitch, {
+        value: row.status === 1,
+        size: 'small',
+        loading,
+        disabled: loading,
+        onUpdateValue: (value: boolean) => handleUpdateStatus(row, value),
+      }, {
+        checked: () => '启用',
+        unchecked: () => '禁用',
+      })
     }
   },
   {
     title: '榜单',
     key: 'showRank',
-    width: 90,
+    width: 92,
     render(row) {
-      return h(NTag, { type: row.showRank === 1 ? 'info' : 'default', size: 'small' }, { default: () => row.showRank === 1 ? '展示' : '隐藏' })
+      if (!hasPermission('yun:anchor:edit')) {
+        return h(NTag, { type: row.showRank === 1 ? 'info' : 'default', size: 'small' }, { default: () => row.showRank === 1 ? '展示' : '隐藏' })
+      }
+      const loading = isRowLoading(showRankUpdatingIds, row.id)
+      return h(NSwitch, {
+        value: row.showRank === 1,
+        size: 'small',
+        loading,
+        disabled: loading,
+        onUpdateValue: (value: boolean) => handleUpdateShowRank(row, value),
+      }, {
+        checked: () => '展示',
+        unchecked: () => '隐藏',
+      })
     }
   },
-  { title: '最近同步', key: 'lastGiftSyncTime', width: 170, render: row => row.lastGiftSyncTime || '-' },
-  { title: '更新时间', key: 'updateTime', width: 170, render: row => row.updateTime || '-' },
+  { title: '最近同步', key: 'lastGiftSyncTime', width: 88, ellipsis: { tooltip: true }, render: row => row.lastGiftSyncTime || '-' },
+  { title: '更新时间', key: 'updateTime', width: 88, ellipsis: { tooltip: true }, render: row => row.updateTime || '-' },
   {
     title: '操作',
     key: 'actions',
-    width: 220,
+    width: 324,
     fixed: 'right',
     render(row) {
       const actions = []
@@ -647,6 +693,56 @@ async function handleEdit(row: YunAnchorPageRow) {
   const detail = await anchorApi.detail(row.id!)
   Object.assign(formData, detail)
   modalVisible.value = true
+}
+
+async function handleUpdateStatus(row: YunAnchorPageRow, checked: boolean) {
+  const id = row.id
+  if (!id) {
+    return
+  }
+  const nextStatus: AnchorStatus = checked ? 1 : 0
+  const prevStatus = row.status ?? 0
+  if (prevStatus === nextStatus || isRowLoading(statusUpdatingIds, id)) {
+    return
+  }
+  updateRowLoading(statusUpdatingIds, id, true)
+  row.status = nextStatus
+  try {
+    await anchorApi.updateStatus(id, nextStatus)
+    message.success(nextStatus === 1 ? '状态已启用' : '状态已禁用')
+    refreshAnchorRows()
+  } catch (error) {
+    row.status = prevStatus
+    console.error('主播状态更新失败', error)
+    message.error('状态更新失败')
+  } finally {
+    updateRowLoading(statusUpdatingIds, id, false)
+  }
+}
+
+async function handleUpdateShowRank(row: YunAnchorPageRow, checked: boolean) {
+  const id = row.id
+  if (!id) {
+    return
+  }
+  const nextShowRank: AnchorFlag = checked ? 1 : 0
+  const prevShowRank = row.showRank ?? 0
+  if (prevShowRank === nextShowRank || isRowLoading(showRankUpdatingIds, id)) {
+    return
+  }
+  updateRowLoading(showRankUpdatingIds, id, true)
+  row.showRank = nextShowRank
+  try {
+    await anchorApi.updateShowRank(id, nextShowRank)
+    message.success(nextShowRank === 1 ? '已展示到榜单' : '已隐藏榜单')
+    refreshAnchorRows()
+  } catch (error) {
+    row.showRank = prevShowRank
+    console.error('主播榜单展示更新失败', error)
+    message.error('榜单展示更新失败')
+  } finally {
+    updateRowLoading(showRankUpdatingIds, id, false)
+  }
 }
 
 async function handleFetchPreview() {
@@ -1046,7 +1142,7 @@ onUnmounted(() => {
 .anchor-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -1064,18 +1160,30 @@ onUnmounted(() => {
 .anchor-sub {
   margin-top: 4px;
   color: #8a8f99;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .action-buttons {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  justify-content: flex-end;
   flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .action-sync-btn {
-  min-width: 72px;
+  min-width: 0;
+}
+
+.action-buttons :deep(.n-button) {
+  flex: 0 0 auto;
+  padding-right: 4px;
+  padding-left: 4px;
+}
+
+.action-buttons :deep(.n-button__content) {
+  white-space: nowrap;
 }
 
 .fullscreen-loading {

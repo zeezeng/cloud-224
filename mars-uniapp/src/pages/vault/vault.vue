@@ -182,7 +182,7 @@ onLoad(() => {
       <view class="vault-summary-space" />
       <view class="vault-summary">
         <text>{{ summaryText }}</text>
-        <text class="vault-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
+        <text class="vault-fetch-time">更新时间：{{ fetchedAt || '--:--:--' }}</text>
       </view>
 
       <scroll-view

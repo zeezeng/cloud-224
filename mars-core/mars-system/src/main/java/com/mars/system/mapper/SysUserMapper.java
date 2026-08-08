@@ -44,6 +44,13 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     List<String> selectPermissionsByUserId(@Param("userId") Long userId);
 
     /**
+     * 获取全部有效权限标识
+     */
+    @Select("SELECT DISTINCT permission FROM sys_menu " +
+            "WHERE status = 1 AND deleted = 0 AND permission IS NOT NULL AND permission != ''")
+    List<String> selectAllPermissions();
+
+    /**
      * 根据用户名查询用户
      */
     @Select("SELECT * FROM sys_user WHERE username = #{username} AND deleted = 0")

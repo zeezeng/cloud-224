@@ -118,6 +118,14 @@ export const anchorApi = {
     return request({ url: '/yun/anchor', method: 'put', data })
   },
 
+  updateStatus(id: number, status: AnchorStatus) {
+    return request({ url: `/yun/anchor/${id}/status`, method: 'put', params: { status } })
+  },
+
+  updateShowRank(id: number, showRank: AnchorFlag) {
+    return request({ url: `/yun/anchor/${id}/show-rank`, method: 'put', params: { showRank } })
+  },
+
   delete(ids: number[]) {
     return request({ url: `/yun/anchor/${ids.join(',')}`, method: 'delete' })
   },

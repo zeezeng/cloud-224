@@ -12,7 +12,7 @@
       <n-image
         :src="modelValue"
         width="260"
-        height="82"
+        height="130"
         object-fit="cover"
         class="banner-preview-image"
       />
@@ -24,7 +24,7 @@
 
     <button v-else class="crop-trigger" type="button" @click="openFilePicker">
       <span class="crop-trigger-title">选择图片并裁剪</span>
-      <span class="crop-trigger-desc">比例 750:238，适配 uniapp 首页轮播</span>
+      <span class="crop-trigger-desc">比例 2:1，适配 uniapp 首页轮播</span>
     </button>
 
     <n-modal
@@ -88,7 +88,7 @@ const emit = defineEmits<{
 const message = useMessage()
 
 const cropWidth = 1500
-const cropHeight = 476
+const cropHeight = 750
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const cropVisible = ref(false)
@@ -312,7 +312,7 @@ function revokeObjectUrl() {
 .crop-trigger {
   display: flex;
   width: 260px;
-  height: 82px;
+  height: 130px;
   cursor: pointer;
   flex-direction: column;
   align-items: center;
@@ -349,7 +349,7 @@ function revokeObjectUrl() {
 
 .crop-canvas {
   width: 100%;
-  aspect-ratio: 750 / 238;
+  aspect-ratio: 2 / 1;
   cursor: grab;
   border-radius: 10px;
   background: #111827;

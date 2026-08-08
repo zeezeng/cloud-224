@@ -193,7 +193,7 @@ onLoad(() => {
       <view class="enjoy-summary-space" />
       <view class="enjoy-summary">
         <text>{{ summaryText }}</text>
-        <text class="enjoy-fetch-time">数据获取时间：{{ fetchedAt || '同步中...' }}</text>
+        <text class="enjoy-fetch-time">更新时间：{{ fetchedAt || '--:--:--' }}</text>
       </view>
 
       <scroll-view

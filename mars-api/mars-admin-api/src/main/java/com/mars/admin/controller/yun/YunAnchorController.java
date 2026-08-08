@@ -70,6 +70,22 @@ public class YunAnchorController {
         ));
     }
 
+    @PutMapping("/{id}/status")
+    @SaCheckPermission("yun:anchor:edit")
+    @Log(title = "云224主播状态", businessType = BusinessType.UPDATE)
+    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+        yunAnchorService.updateStatus(id, status);
+        return Result.ok();
+    }
+
+    @PutMapping("/{id}/show-rank")
+    @SaCheckPermission("yun:anchor:edit")
+    @Log(title = "云224主播榜单展示", businessType = BusinessType.UPDATE)
+    public Result<Void> updateShowRank(@PathVariable Long id, @RequestParam Integer showRank) {
+        yunAnchorService.updateShowRank(id, showRank);
+        return Result.ok();
+    }
+
     @PutMapping
     @SaCheckPermission("yun:anchor:edit")
     @Log(title = "云224主播", businessType = BusinessType.UPDATE)

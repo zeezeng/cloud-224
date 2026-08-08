@@ -91,6 +91,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '首页轮播图', icon: 'ImageOutline' }
       },
       {
+        path: 'yun/notice',
+        name: 'YunNotice',
+        component: () => import('@/views/yun/notice/index.vue'),
+        meta: { title: '首页公告', icon: 'NotificationsOutline' }
+      },
+      {
         path: 'yun/anchor',
         name: 'YunAnchor',
         component: () => import('@/views/yun/anchor/index.vue'),

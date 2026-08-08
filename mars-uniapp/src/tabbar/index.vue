@@ -132,8 +132,10 @@ function getColorByIndex(index: number) {
   overflow: hidden;
   border-top: 1rpx solid rgba(255, 255, 255, 0.08);
   border-radius: 30rpx 30rpx 0 0;
-  background: rgba(0, 0, 0, 0.96);
-  box-shadow: none;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.2);
+  backdrop-filter: blur(24rpx) saturate(1.2);
+  box-shadow: 0 -8rpx 30rpx rgba(0, 0, 0, 0.5);
 }
 
 .tabbar-inner {

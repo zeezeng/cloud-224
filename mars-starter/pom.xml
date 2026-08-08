@@ -21,6 +21,14 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- 开发环境热更新（仅 dev profile 生效，prod 打包时排除） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- 后台接口层 -->
         <dependency>
             <groupId>com.mars</groupId>
@@ -46,6 +54,10 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
+                <configuration>
+                    <!-- 打包时排除 devtools，避免生产环境启动热更新 -->
+                    <excludeGroupIds>org.springframework.boot</excludeGroupIds>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

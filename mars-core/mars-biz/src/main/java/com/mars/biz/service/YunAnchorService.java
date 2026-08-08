@@ -28,6 +28,10 @@ public interface YunAnchorService extends IService<YunAnchor> {
 
     YunAnchorBatchCreateResult batchCreate(List<String> anchorIds, String dataSource);
 
+    void updateStatus(Long id, Integer status);
+
+    void updateShowRank(Long id, Integer showRank);
+
     void update(YunAnchor anchor);
 
     void delete(Long[] ids);

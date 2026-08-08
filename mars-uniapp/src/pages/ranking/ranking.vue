@@ -8,6 +8,7 @@ import RankingList from '@/components/yun/RankingList.vue'
 import YunListStatus from '@/components/yun/YunListStatus.vue'
 import YunPage from '@/components/yun/YunPage.vue'
 import { useRefreshLimit } from '@/hooks/useRefreshLimit'
+import { formatClockTime } from '@/utils/yun'
 
 defineOptions({
   name: 'Ranking',
@@ -57,6 +58,7 @@ const summaryText = computed(() => {
   }
   return `共 ${total.value} 位 · ${periodLabel.value || periodTabs[activePeriodIndex.value]}`
 })
+const latestSyncTimeText = computed(() => `数据截止时间：${formatClockTime(latestSyncTime.value) || '--:--:--'}`)
 
 async function loadRanking({ reset = false, isPullRefresh = false } = {}) {
   if ((loading.value || refreshing.value || loadingMore.value) && !reset) {
@@ -196,7 +198,7 @@ onLoad(() => {
         <CapsuleTabs :items="periodTabs" :active="activePeriodIndex" compact @select="handlePeriodSelect" />
         <view class="ranking-summary">
           <text>{{ summaryText }}</text>
-          <text class="ranking-sync-time">同步时间：{{ latestSyncTime || '等待同步' }}</text>
+          <text class="ranking-sync-time">{{ latestSyncTimeText }}</text>
         </view>
       </view>
 

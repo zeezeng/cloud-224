@@ -31,9 +31,37 @@ export function formatSignedIntegerMoney(value: number) {
   return `${sign}${formatIntegerMoney(Math.abs(value))}`
 }
 
+export function formatClockTime(value?: string | Date) {
+  const pad = (num: number) => String(num).padStart(2, '0')
+
+  if (!value) {
+    return ''
+  }
+
+  if (value instanceof Date) {
+    return `${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
+  }
+
+  const text = String(value).trim()
+  if (!text) {
+    return ''
+  }
+
+  const match = text.match(/(\d{2}):(\d{2})(?::(\d{2}))?/)
+  if (match) {
+    return `${match[1]}:${match[2]}:${match[3] || '00'}`
+  }
+
+  const parsed = new Date(text.replace(/-/g, '/'))
+  if (!Number.isNaN(parsed.getTime())) {
+    return `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`
+  }
+
+  return text
+}
+
 export function formatFetchTime(date = new Date()) {
-  const pad = (value: number) => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  return formatClockTime(date)
 }
 
 export function getRankTone(rank: number) {
