@@ -6,6 +6,10 @@ dist/
 .idea/
 *.iml
 .vscode/
+.cursor/
+.trae/
+*.swp
+*.swo
 
 # Maven
 target/
@@ -26,3 +30,23 @@ uploads/
 .env
 .env.local
 .env.*.local
+
+# =====================================================
+# 项目特定的忽略规则
+# =====================================================
+
+# AI 工具（Trae/Reasonix）生成的临时任务目录
+.reasonix/
+
+# mars-ui 构建产物（由 pnpm build:mars-ui 生成，
+# 每次构建 hash 都会变，不应纳入版本控制）
+mars-starter/src/main/resources/static/
+
+# Playwright 测试输出
+.playwright-cli/
+mars-uniapp/.playwright-cli/
+mars-uniapp/output/
+
+# 根目录临时测试数据
+/ddne-*.js
+/ddne-*.txt
