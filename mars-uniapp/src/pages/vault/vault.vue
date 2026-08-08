@@ -6,6 +6,7 @@ import YunFixedSearch from '@/components/yun/YunFixedSearch.vue'
 import YunListStatus from '@/components/yun/YunListStatus.vue'
 import YunPage from '@/components/yun/YunPage.vue'
 import VaultCard from '@/components/yun/VaultCard.vue'
+import { useRefreshLimit } from '@/hooks/useRefreshLimit'
 import { formatFetchTime } from '@/utils/yun'
 
 defineOptions({
@@ -133,7 +134,20 @@ function goVaultDetail(record: EphoneVaultRecord) {
   })
 }
 
+const { tryRefresh } = useRefreshLimit(5000)
+
 function handleRefresh() {
+  if (!tryRefresh()) {
+    refreshing.value = true
+    setTimeout(() => {
+      refreshing.value = false
+    }, 100)
+    uni.showToast({
+      icon: 'none',
+      title: '刷新太频繁，请 5 秒后再试',
+    })
+    return
+  }
   loadVaultRecords({ reset: true })
 }
 

@@ -59,10 +59,11 @@
             v-if="hasPermission('yun:anchor:sync')"
             type="info"
             :loading="syncAllLoading"
+            :disabled="syncAllTask.running"
             @click="handleSyncAll"
           >
             <template #icon><n-icon><CloudDownloadOutline /></n-icon></template>
-            同步全部
+            {{ syncAllTask.running ? '同步中' : '同步全部' }}
           </n-button>
           <n-button
             v-if="hasPermission('yun:anchor:remove')"
@@ -74,6 +75,20 @@
             删除{{ selectedIds.length > 0 ? `(${selectedIds.length})` : '' }}
           </n-button>
         </n-space>
+      </div>
+
+      <div v-if="syncAllTask.running" class="sync-all-progress-panel">
+        <n-progress
+          type="line"
+          :percentage="syncAllPercent"
+          :show-indicator="false"
+          :height="8"
+          :status="syncAllTask.failCount > 0 ? 'warning' : 'success'"
+        />
+        <span class="sync-all-progress-text">
+          同步中 {{ syncAllTask.completedCount }}/{{ syncAllTask.totalCount }} · 成功 {{ syncAllTask.successCount }} 失败 {{ syncAllTask.failCount }}
+          <template v-if="syncAllTask.currentAnchorId">· 当前：{{ syncAllTask.currentAnchorId }}</template>
+        </span>
       </div>
 
       <n-data-table
@@ -259,11 +274,16 @@
         </n-space>
       </template>
     </n-modal>
+
+    <div v-if="syncingRowIds.length > 0" class="fullscreen-loading">
+      <n-spin size="large" />
+      <p class="fullscreen-loading-text">正在同步主播数据…</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
 import {
   NAvatar,
   NButton,
@@ -286,7 +306,7 @@ import {
   SearchOutline,
   TrashOutline
 } from '@vicons/ionicons5'
-import { anchorApi, type AnchorDataSource, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunSyncResult } from '@/api/anchor'
+import { anchorApi, type AnchorDataSource, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunSyncProgress, type YunSyncResult } from '@/api/anchor'
 import { useUserStore } from '@/stores/user'
 
 const message = useMessage()
@@ -341,6 +361,35 @@ const pagination = reactive({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50]
+})
+
+const syncingRowIds = ref<number[]>([])
+const syncAllTask = reactive<{
+  taskId: string
+  running: boolean
+  totalCount: number
+  completedCount: number
+  successCount: number
+  failCount: number
+  currentAnchorId: string
+  errors: string[]
+}>({
+  taskId: '',
+  running: false,
+  totalCount: 0,
+  completedCount: 0,
+  successCount: 0,
+  failCount: 0,
+  currentAnchorId: '',
+  errors: []
+})
+let syncPollTimer: number | null = null
+
+const syncAllPercent = computed(() => {
+  if (!syncAllTask.totalCount) {
+    return 0
+  }
+  return Math.min(100, Math.round((syncAllTask.completedCount / syncAllTask.totalCount) * 100))
 })
 
 const modalVisible = ref(false)
@@ -471,18 +520,38 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
     fixed: 'right',
     render(row) {
       const actions = []
+      const isRowSyncing = syncingRowIds.value.includes(row.id!)
       if (hasPermission('yun:anchor:sync')) {
-        actions.push(h(NButton, { size: 'small', quaternary: true, type: 'info', onClick: () => handleSync(row) }, {
-          default: () => [h(NIcon, null, { default: () => h(CloudDownloadOutline) }), ' 同步']
-        }))
+        if (isRowSyncing) {
+          actions.push(h(NButton, {
+            size: 'small',
+            quaternary: true,
+            type: 'info',
+            disabled: true,
+            class: 'action-sync-btn'
+          }, {
+            default: () => ' 同步中'
+          }))
+        } else {
+          actions.push(h(NButton, {
+            size: 'small',
+            quaternary: true,
+            type: 'info',
+            disabled: syncAllTask.running,
+            class: 'action-sync-btn',
+            onClick: () => handleSync(row)
+          }, {
+            default: () => [h(NIcon, null, { default: () => h(CloudDownloadOutline) }), ' 同步']
+          }))
+        }
       }
       if (hasPermission('yun:anchor:edit')) {
-        actions.push(h(NButton, { size: 'small', quaternary: true, onClick: () => handleEdit(row) }, {
+        actions.push(h(NButton, { size: 'small', quaternary: true, disabled: isRowSyncing, onClick: () => handleEdit(row) }, {
           default: () => [h(NIcon, null, { default: () => h(CreateOutline) }), ' 编辑']
         }))
       }
       if (hasPermission('yun:anchor:remove')) {
-        actions.push(h(NButton, { size: 'small', quaternary: true, type: 'error', onClick: () => handleDelete(row) }, {
+        actions.push(h(NButton, { size: 'small', quaternary: true, type: 'error', disabled: isRowSyncing, onClick: () => handleDelete(row) }, {
           default: () => [h(NIcon, null, { default: () => h(TrashOutline) }), ' 删除']
         }))
       }
@@ -715,28 +784,97 @@ function renderSyncMessage(result: YunSyncResult) {
 }
 
 async function handleSync(row: YunAnchorPageRow) {
-  const result = await anchorApi.sync(row.id!)
-  renderSyncMessage(result)
-  await loadData()
+  if (syncingRowIds.value.includes(row.id!)) {
+    return
+  }
+  syncingRowIds.value = [...syncingRowIds.value, row.id!]
+  try {
+    const result = await anchorApi.sync(row.id!)
+    renderSyncMessage(result)
+    await loadData()
+  } finally {
+    syncingRowIds.value = syncingRowIds.value.filter(id => id !== row.id)
+  }
 }
 
 function handleSyncAll() {
+  if (syncAllTask.running) {
+    return
+  }
   dialog.warning({
     title: '同步全部主播',
     content: `将同步所有启用主播的今日、昨日和本月礼物数据（数据源：${dataSourceLabel(toolbarSyncDataSource.value)}），确认继续吗？`,
     positiveText: '开始同步',
     negativeText: '取消',
-    onPositiveClick: async () => {
-      syncAllLoading.value = true
-      try {
-        const result = await anchorApi.syncAll(toolbarSyncDataSource.value || undefined)
-        renderSyncMessage(result)
-        await loadData()
-      } finally {
-        syncAllLoading.value = false
-      }
-    }
+    onPositiveClick: startSyncAll
   })
+}
+
+async function startSyncAll() {
+  syncAllLoading.value = true
+  try {
+    const progress: YunSyncProgress = await anchorApi.syncAll(toolbarSyncDataSource.value || undefined)
+    applySyncAllProgress(progress)
+    startSyncPolling()
+  } catch (error) {
+    syncAllLoading.value = false
+    message.error('启动同步失败，请稍后重试')
+  }
+}
+
+function applySyncAllProgress(progress: YunSyncProgress) {
+  syncAllTask.taskId = progress.taskId || ''
+  syncAllTask.running = !!progress.running
+  syncAllTask.totalCount = progress.totalCount ?? syncAllTask.totalCount
+  syncAllTask.completedCount = progress.completedCount || 0
+  syncAllTask.successCount = progress.successCount || 0
+  syncAllTask.failCount = progress.failCount || 0
+  syncAllTask.currentAnchorId = progress.currentAnchorId || ''
+  syncAllTask.errors = progress.errors || []
+}
+
+function startSyncPolling() {
+  stopSyncPolling()
+  syncPollTimer = window.setInterval(async () => {
+    try {
+      const progress = await anchorApi.syncAllProgress(syncAllTask.taskId)
+      applySyncAllProgress(progress)
+      if (!syncAllTask.running) {
+        stopSyncPolling()
+        syncAllLoading.value = false
+        renderSyncAllResult()
+        await loadData()
+      }
+    } catch (error) {
+      stopSyncPolling()
+      syncAllLoading.value = false
+      message.error('同步进度查询失败，请刷新页面查看结果')
+    }
+  }, 1500)
+}
+
+function stopSyncPolling() {
+  if (syncPollTimer !== null) {
+    window.clearInterval(syncPollTimer)
+    syncPollTimer = null
+  }
+}
+
+function renderSyncAllResult() {
+  const { successCount, failCount, totalCount, errors } = syncAllTask
+  if (failCount > 0) {
+    dialog.warning({
+      title: '同步完成',
+      content: () => h('div', { class: 'batch-result' }, [
+        h('div', `成功：${successCount}，失败：${failCount}，共 ${totalCount}`),
+        h('div', { class: 'batch-result-errors' }, errors.slice(0, 10).map(error => h('div', error))),
+        errors.length > 10 ? h('div', { class: 'batch-result-more' }, `还有 ${errors.length - 10} 条失败记录未展示`) : null,
+      ]),
+      positiveText: '知道了'
+    })
+    return
+  }
+  message.success(`同步成功：${successCount}/${totalCount}`)
 }
 
 function handleDelete(row: YunAnchorPageRow) {
@@ -769,6 +907,9 @@ function handleBatchDelete() {
 }
 
 onMounted(loadData)
+onUnmounted(() => {
+  stopSyncPolling()
+})
 </script>
 
 <style scoped>
@@ -794,6 +935,30 @@ onMounted(loadData)
 
 .sync-dialog-desc {
   margin-bottom: 12px;
+}
+
+.sync-all-progress-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.sync-all-progress-panel .n-progress {
+  flex: 1;
+}
+
+.sync-all-progress-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .batch-result {
@@ -907,5 +1072,27 @@ onMounted(loadData)
   align-items: center;
   gap: 6px;
   flex-wrap: nowrap;
+}
+
+.action-sync-btn {
+  min-width: 72px;
+}
+
+.fullscreen-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.fullscreen-loading-text {
+  margin: 0;
+  color: #fff;
+  font-size: 14px;
 }
 </style>

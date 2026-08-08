@@ -15,6 +15,12 @@
     <description>启动模块 - 主启动类和全局配置</description>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- 后台接口层 -->
         <dependency>
             <groupId>com.mars</groupId>

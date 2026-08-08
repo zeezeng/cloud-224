@@ -2,6 +2,7 @@ package com.mars.biz.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mars.biz.dto.BojiangAnchorInfo;
+import com.mars.biz.dto.YunSyncProgress;
 import com.mars.biz.dto.YunSyncResult;
 import com.mars.biz.entity.YunAnchor;
 import com.mars.biz.entity.YunAnchorGiftStat;
@@ -12,6 +13,7 @@ import com.mars.biz.mapper.YunSyncLogMapper;
 import com.mars.biz.service.AnchorDataClient;
 import com.mars.biz.service.YunAnchorGiftSyncService;
 import com.mars.common.exception.BusinessException;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +55,21 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     private final YunAnchorMapper anchorMapper;
     private final YunAnchorGiftStatMapper giftStatMapper;
     private final YunSyncLogMapper syncLogMapper;
+
+    /**
+     * 异步同步任务执行器（单线程，避免多个全量同步并发写库）。
+     */
+    private final ExecutorService syncExecutor = Executors.newSingleThreadExecutor();
+
+    /**
+     * 异步同步任务进度缓存（taskId -> progress）。
+     */
+    private final Map<String, YunSyncProgress> syncProgressMap = new ConcurrentHashMap<>();
+
+    @PreDestroy
+    public void shutdownSyncExecutor() {
+        syncExecutor.shutdownNow();
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -110,6 +131,61 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         return anchorMapper.selectList(wrapper);
     }
 
+    @Override
+    public YunSyncProgress startSyncAll(String triggerType, String dataSource) {
+        List<YunAnchor> anchors = enabledAnchors();
+        List<SyncPeriod> periods = currentPeriods(true, true, true);
+        List<String> finishedTaskIds = syncProgressMap.values().stream()
+                .filter(progress -> Boolean.FALSE.equals(progress.getRunning()))
+                .map(YunSyncProgress::getTaskId)
+                .toList();
+        finishedTaskIds.forEach(syncProgressMap::remove);
+
+        YunSyncProgress progress = new YunSyncProgress();
+        progress.setTaskId(UUID.randomUUID().toString());
+        progress.setRunning(true);
+        progress.setTotalCount(anchors.size() * periods.size());
+        progress.setStartedAt(LocalDateTime.now());
+        syncProgressMap.put(progress.getTaskId(), progress);
+
+        syncExecutor.submit(() -> {
+            YunSyncResult result = new YunSyncResult();
+            result.setStartedAt(progress.getStartedAt());
+            result.setTotalCount(progress.getTotalCount());
+            try {
+                for (YunAnchor anchor : anchors) {
+                    for (SyncPeriod period : periods) {
+                        progress.setCurrentAnchorId(anchor.getAnchorId());
+                        progress.setCurrentPeriodKey(period.periodKey());
+                        syncOne(anchor, period, dataSource, result);
+                        progress.setSuccessCount(result.getSuccessCount());
+                        progress.setFailCount(result.getFailCount());
+                        progress.setCompletedCount(progress.getCompletedCount() + 1);
+                        progress.setErrors(new ArrayList<>(result.getErrors()));
+                    }
+                }
+                result.setEndedAt(LocalDateTime.now());
+                saveLog(result, periods, triggerType);
+                progress.setErrors(new ArrayList<>(result.getErrors()));
+            } catch (Exception e) {
+                log.error("异步同步全部主播失败", e);
+            } finally {
+                progress.setRunning(false);
+                progress.setEndedAt(LocalDateTime.now());
+            }
+        });
+        return progress;
+    }
+
+    @Override
+    public YunSyncProgress getSyncAllProgress(String taskId) {
+        YunSyncProgress progress = syncProgressMap.get(taskId);
+        if (progress == null) {
+            throw new BusinessException("同步任务不存在或已过期");
+        }
+        return progress;
+    }
+
     private YunSyncResult syncAnchors(List<YunAnchor> anchors, List<SyncPeriod> periods, String triggerType, String requestedDataSource) {
         YunSyncResult result = new YunSyncResult();
         LocalDateTime startedAt = LocalDateTime.now();
@@ -118,28 +194,32 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
 
         for (YunAnchor anchor : anchors) {
             for (SyncPeriod period : periods) {
-                try {
-                    AnchorDataClient client = resolveClient(requestedDataSource, anchor.getDataSource());
-                    BojiangAnchorInfo info = period.month() == null
-                            ? client.fetchDailyAnchor(anchor.getAnchorId(), period.date())
-                            : client.fetchMonthAnchor(anchor.getAnchorId(), period.month());
-                    saveStat(anchor, info, period, client.sourceCode());
-                    updateAnchorProfile(anchor, info, client.sourceCode());
-                    result.setSuccessCount(result.getSuccessCount() + 1);
-                } catch (Exception e) {
-                    result.setFailCount(result.getFailCount() + 1);
-                    String message = anchor.getAnchorId() + " " + period.periodKey() + ": " + e.getMessage();
-                    if (result.getErrors().size() < 20) {
-                        result.getErrors().add(message);
-                    }
-                    log.warn("同步主播礼物数据失败: {}", message);
-                }
+                syncOne(anchor, period, requestedDataSource, result);
             }
         }
 
         result.setEndedAt(LocalDateTime.now());
         saveLog(result, periods, triggerType);
         return result;
+    }
+
+    private void syncOne(YunAnchor anchor, SyncPeriod period, String requestedDataSource, YunSyncResult result) {
+        try {
+            AnchorDataClient client = resolveClient(requestedDataSource, anchor.getDataSource());
+            BojiangAnchorInfo info = period.month() == null
+                    ? client.fetchDailyAnchor(anchor.getAnchorId(), period.date())
+                    : client.fetchMonthAnchor(anchor.getAnchorId(), period.month());
+            saveStat(anchor, info, period, client.sourceCode());
+            updateAnchorProfile(anchor, info, client.sourceCode());
+            result.setSuccessCount(result.getSuccessCount() + 1);
+        } catch (Exception e) {
+            result.setFailCount(result.getFailCount() + 1);
+            String message = anchor.getAnchorId() + " " + period.periodKey() + ": " + e.getMessage();
+            if (result.getErrors().size() < 20) {
+                result.getErrors().add(message);
+            }
+            log.warn("同步主播礼物数据失败: {}", message);
+        }
     }
 
     private void saveStat(YunAnchor anchor, BojiangAnchorInfo info, SyncPeriod period, String sourceCode) {

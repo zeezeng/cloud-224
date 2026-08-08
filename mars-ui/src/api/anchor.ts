@@ -51,6 +51,20 @@ export interface YunSyncResult {
   endedAt?: string
 }
 
+export interface YunSyncProgress {
+  taskId?: string
+  running?: boolean
+  totalCount?: number
+  completedCount?: number
+  successCount?: number
+  failCount?: number
+  currentAnchorId?: string
+  currentPeriodKey?: string
+  errors?: string[]
+  startedAt?: string
+  endedAt?: string
+}
+
 export interface YunAnchorBatchCreateResult {
   totalCount: number
   successCount: number
@@ -113,6 +127,10 @@ export const anchorApi = {
   },
 
   syncAll(dataSource?: string) {
-    return request<YunSyncResult>({ url: '/yun/anchor/sync-all', method: 'post', params: { dataSource } })
+    return request<YunSyncProgress>({ url: '/yun/anchor/sync-all', method: 'post', params: { dataSource } })
+  },
+
+  syncAllProgress(taskId: string) {
+    return request<YunSyncProgress>({ url: '/yun/anchor/sync-all/progress', method: 'get', params: { taskId } })
   }
 }

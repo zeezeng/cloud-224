@@ -1,5 +1,6 @@
 package com.mars.biz.service;
 
+import com.mars.biz.dto.YunSyncProgress;
 import com.mars.biz.dto.YunSyncResult;
 
 /**
@@ -22,4 +23,14 @@ public interface YunAnchorGiftSyncService {
     YunSyncResult syncYesterday(String triggerType);
 
     YunSyncResult syncYesterday(String triggerType, String dataSource);
+
+    /**
+     * 异步启动全部主播同步，立即返回任务进度。
+     */
+    YunSyncProgress startSyncAll(String triggerType, String dataSource);
+
+    /**
+     * 查询异步同步任务进度。
+     */
+    YunSyncProgress getSyncAllProgress(String taskId);
 }

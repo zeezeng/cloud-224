@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mars.biz.dto.BojiangAnchorInfo;
 import com.mars.biz.dto.YunAnchorBatchCreateResult;
 import com.mars.biz.dto.YunAnchorPageRow;
+import com.mars.biz.dto.YunSyncProgress;
 import com.mars.biz.dto.YunSyncResult;
 import com.mars.biz.entity.YunAnchor;
 import com.mars.biz.entity.YunAnchorGiftStat;
@@ -203,6 +204,16 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
     @Override
     public YunSyncResult syncAll(String dataSource) {
         return syncService.syncAll("MANUAL", dataSource);
+    }
+
+    @Override
+    public YunSyncProgress startSyncAll(String dataSource) {
+        return syncService.startSyncAll("MANUAL", dataSource);
+    }
+
+    @Override
+    public YunSyncProgress getSyncAllProgress(String taskId) {
+        return syncService.getSyncAllProgress(taskId);
     }
 
     private Map<String, YunAnchorGiftStat> statMap(List<String> anchorIds, String periodType, String periodKey) {

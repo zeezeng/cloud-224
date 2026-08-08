@@ -79,4 +79,11 @@ const emit = defineEmits<{
   border-color: transparent;
   background: transparent;
 }
+
+.capsule-tabs-compact .capsule-tab-active {
+  border-color: rgba(242, 182, 204, 0.3);
+  background: rgba(242, 182, 204, 0.85);
+  color: #241022;
+  font-weight: 700;
+}
 </style>

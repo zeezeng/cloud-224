@@ -5,6 +5,7 @@ import BackTopButton from '@/components/yun/BackTopButton.vue'
 import AnchorAvatar from '@/components/yun/AnchorAvatar.vue'
 import YunListStatus from '@/components/yun/YunListStatus.vue'
 import YunTransparentNav from '@/components/yun/YunTransparentNav.vue'
+import { useRefreshLimit } from '@/hooks/useRefreshLimit'
 import { formatFetchTime, formatIntegerMoney, formatSignedIntegerMoney } from '@/utils/yun'
 
 defineOptions({
@@ -150,7 +151,17 @@ function handleLoadMore() {
   loadVaultDetail()
 }
 
+const { tryRefresh } = useRefreshLimit(5000)
+
 onPullDownRefresh(() => {
+  if (!tryRefresh()) {
+    uni.showToast({
+      icon: 'none',
+      title: '刷新太频繁，请 5 秒后再试',
+    })
+    uni.stopPullDownRefresh()
+    return
+  }
   loadVaultDetail({ reset: true })
 })
 

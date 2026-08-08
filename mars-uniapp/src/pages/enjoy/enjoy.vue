@@ -5,6 +5,7 @@ import BackTopButton from '@/components/yun/BackTopButton.vue'
 import YunFixedSearch from '@/components/yun/YunFixedSearch.vue'
 import YunPage from '@/components/yun/YunPage.vue'
 import RankingList from '@/components/yun/RankingList.vue'
+import { useRefreshLimit } from '@/hooks/useRefreshLimit'
 import { formatFetchTime } from '@/utils/yun'
 
 defineOptions({
@@ -144,7 +145,20 @@ function handleLoadMore() {
   loadEnjoyUsers()
 }
 
+const { tryRefresh } = useRefreshLimit(5000)
+
 function handleRefresh() {
+  if (!tryRefresh()) {
+    refreshing.value = true
+    setTimeout(() => {
+      refreshing.value = false
+    }, 100)
+    uni.showToast({
+      icon: 'none',
+      title: '刷新太频繁，请 5 秒后再试',
+    })
+    return
+  }
   loadEnjoyUsers({ reset: true })
 }
 

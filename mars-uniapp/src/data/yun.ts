@@ -139,8 +139,6 @@ export const homeQuickActions: EphoneQuickAction[] = [
 
 export const anchorFilters = ['全部', '直播中', '女团', '男团', '本月Top']
 
-export const rankingTypeTabs = ['礼物榜', '人气榜', '金库榜']
-
 export const periodTabs = ['今日', '本周', '本月']
 
 export const enjoyPeriodTabs = ['今日', '本周', '本月', '全部']

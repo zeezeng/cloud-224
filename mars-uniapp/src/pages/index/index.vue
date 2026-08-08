@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import type { HomeBanner } from '@/api/banner'
 import { getHomeBannerList, resolveBannerImageUrl } from '@/api/banner'
-import { ephoneAnchors, homeQuickActions, rankingTypeTabs } from '@/data/yun'
+import { getAnchorGiftRanking } from '@/api/ranking'
+import type { EphoneRankRecord } from '@/data/yun'
+import { homeQuickActions } from '@/data/yun'
 import { formatCompactNumber } from '@/utils/yun'
-import CapsuleTabs from '@/components/yun/CapsuleTabs.vue'
 import YunPanel from '@/components/yun/YunPanel.vue'
 import YunPage from '@/components/yun/YunPage.vue'
 import QuickGrid from '@/components/yun/QuickGrid.vue'
 import RankBadge from '@/components/yun/RankBadge.vue'
 import AnchorAvatar from '@/components/yun/AnchorAvatar.vue'
 import AddToDesktopTip from '@/components/yun/AddToDesktopTip.vue'
+import { useRefreshLimit } from '@/hooks/useRefreshLimit'
 
 defineOptions({
   name: 'Home',
@@ -20,10 +22,50 @@ definePage({
   style: {
     navigationStyle: 'custom',
     navigationBarTitleText: '首页',
+    backgroundColor: '#000000',
   },
 })
 
-const topAnchors = ephoneAnchors.slice(0, 3)
+const todayRanking = ref<EphoneRankRecord[]>([])
+const todayRankingUpdatedAt = ref('')
+
+const rankingUpdatedText = computed(() => {
+  const value = todayRankingUpdatedAt.value
+  if (!value) {
+    return ''
+  }
+  const match = value.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/)
+  if (!match) {
+    return `更新于 ${value}`
+  }
+  const now = new Date()
+  const pad = (num: number) => String(num).padStart(2, '0')
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  return match[1] === todayStr ? `更新于 ${match[2]}` : `更新于 ${match[1]} ${match[2]}`
+})
+
+/** 下拉刷新 5 秒限流 */
+const { tryRefresh } = useRefreshLimit(5000)
+const refreshing = ref(false)
+
+function handleRefresh() {
+  if (!tryRefresh()) {
+    // 被限流：先展开再收回，让 refresher 回到原位
+    refreshing.value = true
+    setTimeout(() => {
+      refreshing.value = false
+    }, 100)
+    uni.showToast({
+      icon: 'none',
+      title: '刷新太频繁，请 5 秒后再试',
+    })
+    return
+  }
+  refreshing.value = true
+  Promise.all([loadHomeBanners(), loadTodayRanking()]).finally(() => {
+    refreshing.value = false
+  })
+}
 const fallbackBanner: HomeBanner = {
   id: 0,
   title: '闪耀舞台',
@@ -41,7 +83,20 @@ const tabbarPages = new Set([
 
 onMounted(() => {
   loadHomeBanners()
+  loadTodayRanking()
 })
+
+async function loadTodayRanking() {
+  try {
+    const result = await getAnchorGiftRanking({ period: 'today', page: 1, pageSize: 10 })
+    todayRanking.value = Array.isArray(result.records) ? result.records : []
+    todayRankingUpdatedAt.value = result.latestSyncTime || ''
+  }
+  catch (error) {
+    console.error('首页今日排行加载失败', error)
+    todayRanking.value = []
+  }
+}
 
 async function loadHomeBanners() {
   try {
@@ -103,63 +158,94 @@ function handleBannerTap(banner: HomeBanner) {
 </script>
 
 <template>
-  <YunPage title="云224" subtitle="向阳而生 · 热爱同行 · 闪闪发光">
-    <swiper
-      class="home-banner-swiper"
-      :indicator-dots="homeBanners.length > 1"
-      circular
-      autoplay
-      :interval="4200"
-      :duration="360"
-    >
-      <swiper-item v-for="banner in homeBanners" :key="banner.id || banner.imageUrl">
-        <view class="home-banner-slide" @tap="handleBannerTap(banner)">
-          <image
-            class="home-banner-image"
-            :src="getBannerImageUrl(banner)"
-            :alt="banner.title || '首页轮播图'"
-            mode="aspectFill"
-          />
-        </view>
-      </swiper-item>
-    </swiper>
+  <YunPage title="云224" subtitle="向阳而生 · 热爱同行 · 闪闪发光" scroll-locked>
+    <view class="home-layout">
+      <scroll-view
+        class="home-scroll"
+        scroll-y
+        :refresher-enabled="true"
+        :refresher-triggered="refreshing"
+        :show-scrollbar="false"
+        @refresherrefresh="handleRefresh"
+      >
+        <view class="home-content">
+          <swiper
+            class="home-banner-swiper"
+            :indicator-dots="homeBanners.length > 1"
+            circular
+            autoplay
+            :interval="4200"
+            :duration="360"
+          >
+            <swiper-item v-for="banner in homeBanners" :key="banner.id || banner.imageUrl">
+              <view class="home-banner-slide" @tap="handleBannerTap(banner)">
+                <image
+                  class="home-banner-image"
+                  :src="getBannerImageUrl(banner)"
+                  :alt="banner.title || '首页轮播图'"
+                  mode="aspectFill"
+                />
+              </view>
+            </swiper-item>
+          </swiper>
 
-    <view class="home-notice">
-      <view class="i-carbon-volume-up notice-icon" />
-      <text class="notice-title">公告</text>
-      <text class="notice-copy">平台数据每 10 分钟更新一次</text>
+          <view class="home-notice">
+            <view class="i-carbon-volume-up notice-icon" />
+            <text class="notice-title">公告</text>
+            <text class="notice-copy">平台数据每 10 分钟更新一次</text>
+          </view>
+
+          <YunPanel title="主播今日排行" icon="i-carbon-trophy-filled" :action="rankingUpdatedText">
+            <view class="home-rank-list">
+              <view v-for="(anchor, index) in todayRanking" :key="anchor.id" class="home-rank-row">
+                <RankBadge :rank="index + 1" />
+                <AnchorAvatar
+                  class="home-rank-avatar"
+                  :src="anchor.avatar"
+                  :name="anchor.name"
+                  :show-pulse="false"
+                  size="sm"
+                />
+                <view class="home-rank-name">
+                  {{ anchor.name }}
+                </view>
+                <view class="home-rank-value">
+                  <view class="i-carbon-fire" />
+                  {{ formatCompactNumber(anchor.value) }}
+                </view>
+              </view>
+              <view v-if="todayRanking.length === 0" class="home-rank-empty">
+                暂无排行数据，请先同步主播数据
+              </view>
+            </view>
+          </YunPanel>
+
+          <!-- <QuickGrid :items="homeQuickActions" /> -->
+        </view>
+      </scroll-view>
     </view>
-
-    <YunPanel title="主播排行" icon="i-carbon-trophy-filled" action="更多排行">
-      <CapsuleTabs :items="rankingTypeTabs" compact />
-      <view class="home-rank-list">
-        <view v-for="(anchor, index) in topAnchors" :key="anchor.id" class="home-rank-row">
-          <RankBadge :rank="index + 1" />
-          <AnchorAvatar
-            class="home-rank-avatar"
-            :src="anchor.avatar"
-            :name="anchor.name"
-            :show-pulse="false"
-            size="sm"
-          />
-          <view class="home-rank-name">
-            {{ anchor.name }}
-          </view>
-          <view class="home-rank-value">
-            <view class="i-carbon-fire" />
-            {{ formatCompactNumber(anchor.monthlyFlow) }}
-          </view>
-        </view>
-      </view>
-    </YunPanel>
-
-    <QuickGrid :items="homeQuickActions" />
   </YunPage>
 
   <AddToDesktopTip />
 </template>
 
 <style scoped lang="scss">
+.home-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.home-scroll {
+  flex: 1;
+  height: 100%;
+}
+
+.home-content {
+  padding-bottom: 40rpx;
+}
+
 .home-banner-swiper {
   height: 238rpx;
   margin-top: 26rpx;
@@ -231,6 +317,13 @@ function handleBannerTap(banner: HomeBanner) {
 
 .home-rank-row:last-child {
   border-bottom: 0;
+}
+
+.home-rank-empty {
+  padding: 40rpx 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 26rpx;
+  text-align: center;
 }
 
 .home-rank-name {

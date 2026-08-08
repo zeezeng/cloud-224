@@ -7,6 +7,7 @@ import PodiumBoard from '@/components/yun/PodiumBoard.vue'
 import RankingList from '@/components/yun/RankingList.vue'
 import YunListStatus from '@/components/yun/YunListStatus.vue'
 import YunPage from '@/components/yun/YunPage.vue'
+import { useRefreshLimit } from '@/hooks/useRefreshLimit'
 
 defineOptions({
   name: 'Ranking',
@@ -43,6 +44,9 @@ const listScrollTop = ref(0)
 
 let loadGeneration = 0
 let currentListScrollTop = 0
+
+/** 下拉刷新 5 秒限流 */
+const { tryRefresh } = useRefreshLimit(5000)
 
 const currentPeriod = computed(() => periodValues[activePeriodIndex.value] || 'today')
 const podiumRecords = computed(() => records.value.slice(0, 3))
@@ -147,6 +151,18 @@ function handlePeriodSelect(index: number) {
 }
 
 function handleRefresh() {
+  if (!tryRefresh()) {
+    // 被限流：先展开再收回，让 refresher 回到原位
+    refreshing.value = true
+    setTimeout(() => {
+      refreshing.value = false
+    }, 100)
+    uni.showToast({
+      icon: 'none',
+      title: '刷新太频繁，请 5 秒后再试',
+    })
+    return
+  }
   loadRanking({ reset: true, isPullRefresh: true })
 }
 

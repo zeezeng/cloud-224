@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mars.biz.dto.YunAnchorBatchCreateRequest;
 import com.mars.biz.dto.YunAnchorBatchCreateResult;
 import com.mars.biz.dto.YunAnchorPageRow;
+import com.mars.biz.dto.YunSyncProgress;
 import com.mars.biz.dto.YunSyncResult;
 import com.mars.biz.entity.YunAnchor;
 import com.mars.biz.service.YunAnchorService;
@@ -96,7 +97,13 @@ public class YunAnchorController {
     @PostMapping("/sync-all")
     @SaCheckPermission("yun:anchor:sync")
     @Log(title = "云224主播礼物同步", businessType = BusinessType.UPDATE)
-    public Result<YunSyncResult> syncAll(@RequestParam(required = false) String dataSource) {
-        return Result.ok(yunAnchorService.syncAll(dataSource));
+    public Result<YunSyncProgress> syncAll(@RequestParam(required = false) String dataSource) {
+        return Result.ok(yunAnchorService.startSyncAll(dataSource));
+    }
+
+    @GetMapping("/sync-all/progress")
+    @SaCheckPermission("yun:anchor:sync")
+    public Result<YunSyncProgress> syncAllProgress(@RequestParam String taskId) {
+        return Result.ok(yunAnchorService.getSyncAllProgress(taskId));
     }
 }
