@@ -66,7 +66,12 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <!-- 打包时排除 devtools，避免生产环境启动热更新 -->
-                    <excludeGroupIds>org.springframework.boot</excludeGroupIds>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-devtools</artifactId>
+                        </exclude>
+                    </excludes>
                 </configuration>
                 <executions>
                     <execution>
