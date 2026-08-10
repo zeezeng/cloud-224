@@ -23,8 +23,8 @@ definePage({
   },
 })
 
-const periodTabs = ['今日', '昨日', '本月']
-const periodValues: RankingPeriod[] = ['today', 'yesterday', 'month']
+const periodTabs = ['今日', '昨日']
+const periodValues: RankingPeriod[] = ['today', 'yesterday']
 
 const activePeriodIndex = ref(0)
 const records = ref<EphoneRankRecord[]>([])

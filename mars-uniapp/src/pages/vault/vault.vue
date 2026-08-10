@@ -197,12 +197,12 @@ onLoad(() => {
           <text class="vault-fetch-time">· 更新 {{ fetchedAt || '--:--:--' }}</text>
         </view>
         <view
-          class="vault-history-btn"
-          hover-class="vault-history-btn-hover"
+          class="vault-history-link"
+          hover-class="vault-history-link-hover"
           @tap="goHistoryPage"
         >
-          <view class="i-carbon-recently-viewed vault-history-btn-icon" />
           <text>最近变动</text>
+          <view class="i-carbon-chevron-right vault-history-link-arrow" />
         </view>
       </view>
 
@@ -317,25 +317,19 @@ onLoad(() => {
   padding: 18rpx 0 24rpx;
 }
 
-.vault-history-btn {
+.vault-history-link {
   display: inline-flex;
   align-items: center;
-  gap: 6rpx;
-  min-height: 40rpx;
-  padding: 0 14rpx 0 12rpx;
-  border: 1rpx solid rgba(217, 175, 96, 0.42);
-  border-radius: 999rpx;
-  background: rgba(29, 24, 17, 0.52);
-  color: rgba(243, 211, 151, 0.96);
+  gap: 2rpx;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 21rpx;
+}
+
+.vault-history-link-hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.vault-history-link-arrow {
   font-size: 20rpx;
-  font-weight: 800;
-}
-
-.vault-history-btn-hover {
-  opacity: 0.82;
-}
-
-.vault-history-btn-icon {
-  font-size: 24rpx;
 }
 </style>
