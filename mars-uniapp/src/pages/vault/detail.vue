@@ -15,8 +15,7 @@ defineOptions({
 definePage({
   style: {
     navigationStyle: 'custom',
-    enablePullDownRefresh: true,
-    onReachBottomDistance: 120,
+    disableScroll: true,
     backgroundColor: '#000000',
   },
 })
@@ -36,8 +35,10 @@ const loadFailed = ref(false)
 const loadMoreError = ref('')
 const showBackTop = ref(false)
 const fetchedAt = ref('')
+const listScrollTop = ref(0)
 
 let loadGeneration = 0
+let currentListScrollTop = 0
 
 onLoad((query) => {
   const id = String(query?.id || '').trim()
@@ -139,7 +140,6 @@ async function loadVaultDetail({ reset = false } = {}) {
       refreshing.value = false
       loadingMore.value = false
       loaded.value = true
-      uni.stopPullDownRefresh()
     }
   }
 }
@@ -153,25 +153,31 @@ function handleLoadMore() {
 
 const { tryRefresh } = useRefreshLimit(5000)
 
-onPullDownRefresh(() => {
+function handleRefresh() {
   if (!tryRefresh()) {
+    refreshing.value = true
+    setTimeout(() => {
+      refreshing.value = false
+    }, 100)
     uni.showToast({
       icon: 'none',
       title: '刷新太频繁，请 5 秒后再试',
     })
-    uni.stopPullDownRefresh()
     return
   }
   loadVaultDetail({ reset: true })
-})
+}
 
-onReachBottom(() => {
-  handleLoadMore()
-})
+function handleListScroll(event: { detail?: { scrollTop?: number } }) {
+  currentListScrollTop = Number(event.detail?.scrollTop || 0)
+  showBackTop.value = currentListScrollTop > 420
+}
 
-onPageScroll((event) => {
-  showBackTop.value = event.scrollTop > 420
-})
+async function handleBackTop() {
+  listScrollTop.value = currentListScrollTop
+  await nextTick()
+  listScrollTop.value = 0
+}
 </script>
 
 <template>
@@ -184,93 +190,107 @@ onPageScroll((event) => {
       @layout="handleNavLayout"
     />
 
-    <view class="vault-detail-content">
-      <view v-if="record" class="vault-summary">
-        <view class="vault-user">
-          <AnchorAvatar :src="record.avatar" :name="record.name" :show-pulse="false" size="md" />
-          <view class="vault-user-main">
-            <view class="vault-user-name">
-              {{ record.name }}
-              <text>{{ record.group }}</text>
-            </view>
-            <view class="vault-user-meta">
-              直播间号：{{ record.roomId }}
-            </view>
-            <view class="vault-user-meta">
-              更新时间：{{ fetchedAt || '--:--:--' }}
-            </view>
-          </view>
-        </view>
-
-        <view class="vault-total-label">
-          金币总额
-        </view>
-        <view class="vault-total-value">
-          {{ formatIntegerMoney(record.balance) }}
-        </view>
-
-        <view class="vault-summary-stats">
-          <view class="vault-summary-stat">
-            <text>本日记录</text>
-            <strong>{{ record.dailyRecordCount }} 笔</strong>
-          </view>
-          <view class="vault-summary-stat">
-            <text>本日增减</text>
-            <strong :class="{ 'is-down': record.dailyDelta < 0 }">
-              {{ formatSignedIntegerMoney(record.dailyDelta) }}
-            </strong>
-          </view>
-        </view>
-      </view>
-
-      <view v-if="record" class="vault-record-title">
-        变动记录
-      </view>
-
-      <YunListStatus
-        :loading="loading"
-        :refreshing="refreshing"
-        :loading-more="loadingMore"
-        :loaded="loaded"
-        :has-more="logsHasMore"
-        :has-items="!!record?.changes.length"
-        :error-message="loadFailed ? '金库详情加载失败' : ''"
-        :load-more-error="loadMoreError"
-        loading-text="正在读取金库详情..."
-        empty-text="暂无乐享币增减记录"
-        @retry="loadMoreError ? loadVaultDetail() : loadVaultDetail({ reset: true })"
-        @load-more="handleLoadMore"
-      >
-        <view v-if="record" class="vault-change-list">
-          <view v-for="change in record.changes" :key="change.id" class="vault-change-row">
-            <view class="vault-change-mark" :class="{ 'is-down': change.amount < 0 }">
-              {{ change.amount >= 0 ? '+' : '-' }}
-            </view>
-            <view class="vault-change-main">
-              <view class="vault-change-name">
-                {{ change.title }}
+    <scroll-view
+      class="vault-detail-scroll"
+      scroll-y
+      :scroll-top="listScrollTop"
+      :refresher-enabled="true"
+      :refresher-triggered="refreshing"
+      :show-scrollbar="false"
+      lower-threshold="120"
+      scroll-with-animation
+      @scroll="handleListScroll"
+      @scrolltolower="handleLoadMore"
+      @refresherrefresh="handleRefresh"
+    >
+      <view class="vault-detail-content">
+        <view v-if="record" class="vault-summary">
+          <view class="vault-user">
+            <AnchorAvatar :src="record.avatar" :name="record.name" :show-pulse="false" size="md" />
+            <view class="vault-user-main">
+              <view class="vault-user-name">
+                {{ record.name }}
+                <text>{{ record.group }}</text>
               </view>
-              <view class="vault-change-desc">
-                {{ change.time }} · {{ change.remark }}
+              <view class="vault-user-meta">
+                直播间号：{{ record.roomId }}
+              </view>
+              <view class="vault-user-meta">
+                更新时间：{{ fetchedAt || '--:--:--' }}
               </view>
             </view>
-            <view class="vault-change-amount" :class="{ 'is-down': change.amount < 0 }">
-              {{ formatSignedIntegerMoney(change.amount) }}
+          </view>
+
+          <view class="vault-total-label">
+            金币总额
+          </view>
+          <view class="vault-total-value">
+            {{ formatIntegerMoney(record.balance) }}
+          </view>
+
+          <view class="vault-summary-stats">
+            <view class="vault-summary-stat">
+              <text>本日记录</text>
+              <strong>{{ record.dailyRecordCount }} 笔</strong>
+            </view>
+            <view class="vault-summary-stat">
+              <text>本日增减</text>
+              <strong :class="{ 'is-down': record.dailyDelta < 0 }">
+                {{ formatSignedIntegerMoney(record.dailyDelta) }}
+              </strong>
             </view>
           </view>
         </view>
-      </YunListStatus>
-    </view>
 
-    <BackTopButton :visible="showBackTop" />
+        <view v-if="record" class="vault-record-title">
+          变动记录
+        </view>
+
+        <YunListStatus
+          :loading="loading"
+          :refreshing="refreshing"
+          :loading-more="loadingMore"
+          :loaded="loaded"
+          :has-more="logsHasMore"
+          :has-items="!!record?.changes.length"
+          :error-message="loadFailed ? '金库详情加载失败' : ''"
+          :load-more-error="loadMoreError"
+          loading-text="正在读取金库详情..."
+          empty-text="暂无乐享币增减记录"
+          @retry="loadMoreError ? loadVaultDetail() : loadVaultDetail({ reset: true })"
+          @load-more="handleLoadMore"
+        >
+          <view v-if="record" class="vault-change-list">
+            <view v-for="change in record.changes" :key="change.id" class="vault-change-row">
+              <view class="vault-change-mark" :class="{ 'is-down': change.amount < 0 }">
+                {{ change.amount >= 0 ? '+' : '-' }}
+              </view>
+              <view class="vault-change-main">
+                <view class="vault-change-name">
+                  {{ change.title }}
+                </view>
+                <view class="vault-change-desc">
+                  {{ change.time }} · {{ change.remark }}
+                </view>
+              </view>
+              <view class="vault-change-amount" :class="{ 'is-down': change.amount < 0 }">
+                {{ formatSignedIntegerMoney(change.amount) }}
+              </view>
+            </view>
+          </view>
+        </YunListStatus>
+      </view>
+    </scroll-view>
+
+    <BackTopButton :visible="showBackTop" :page-scroll="false" @back-top="handleBackTop" />
   </view>
 </template>
 
 <style scoped lang="scss">
 .vault-detail-page {
   position: relative;
-  min-height: 100vh;
-  overflow-x: hidden;
+  height: 100vh;
+  overflow: hidden;
   background: var(--ephone-bg-scene);
   color: var(--ephone-text);
 }
@@ -287,12 +307,17 @@ onPageScroll((event) => {
   pointer-events: none;
 }
 
-.vault-detail-content {
+.vault-detail-scroll {
   position: relative;
   z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.vault-detail-content {
   box-sizing: border-box;
   max-width: 960rpx;
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0 auto;
   padding: calc(var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 36rpx) 40rpx 160rpx;
 }

@@ -14,8 +14,7 @@ defineOptions({
 definePage({
   style: {
     navigationStyle: 'custom',
-    enablePullDownRefresh: true,
-    onReachBottomDistance: 120,
+    disableScroll: true,
     backgroundColor: '#000000',
   },
 })
@@ -33,8 +32,10 @@ const errorMessage = ref('')
 const loadMoreError = ref('')
 const showBackTop = ref(false)
 const fetchedAt = ref('')
+const listScrollTop = ref(0)
 
 let loadGeneration = 0
+let currentListScrollTop = 0
 
 const summaryText = computed(() => {
   if (!loaded.value || loading.value || refreshing.value) {
@@ -107,7 +108,6 @@ async function loadRecentChanges({ reset = false } = {}) {
       refreshing.value = false
       loadingMore.value = false
       loaded.value = true
-      uni.stopPullDownRefresh()
     }
   }
 }
@@ -130,26 +130,32 @@ function goVaultDetail(item: VaultRecentChange) {
 
 const { tryRefresh } = useRefreshLimit(5000)
 
-onPullDownRefresh(() => {
+function handleRefresh() {
   if (!tryRefresh()) {
+    refreshing.value = true
+    setTimeout(() => {
+      refreshing.value = false
+    }, 100)
     uni.showToast({
       icon: 'none',
       title: '刷新太频繁，请 5 秒后再试',
     })
-    uni.stopPullDownRefresh()
     return
   }
   clearVaultPlayerCache()
   loadRecentChanges({ reset: true })
-})
+}
 
-onReachBottom(() => {
-  handleLoadMore()
-})
+function handleListScroll(event: { detail?: { scrollTop?: number } }) {
+  currentListScrollTop = Number(event.detail?.scrollTop || 0)
+  showBackTop.value = currentListScrollTop > 420
+}
 
-onPageScroll((event) => {
-  showBackTop.value = event.scrollTop > 420
-})
+async function handleBackTop() {
+  listScrollTop.value = currentListScrollTop
+  await nextTick()
+  listScrollTop.value = 0
+}
 
 onLoad(() => {
   loadRecentChanges({ reset: true })
@@ -166,69 +172,83 @@ onLoad(() => {
       @layout="handleNavLayout"
     />
 
-    <view class="vault-history-content">
-      <view class="vault-history-summary">
-        <text>{{ summaryText }}</text>
-        <text class="vault-history-summary-time">· 更新 {{ fetchedAt || '--:--:--' }}</text>
-      </view>
+    <scroll-view
+      class="vault-history-scroll"
+      scroll-y
+      :scroll-top="listScrollTop"
+      :refresher-enabled="true"
+      :refresher-triggered="refreshing"
+      :show-scrollbar="false"
+      lower-threshold="120"
+      scroll-with-animation
+      @scroll="handleListScroll"
+      @scrolltolower="handleLoadMore"
+      @refresherrefresh="handleRefresh"
+    >
+      <view class="vault-history-content">
+        <view class="vault-history-summary">
+          <text>{{ summaryText }}</text>
+          <text class="vault-history-summary-time">· 更新 {{ fetchedAt || '--:--:--' }}</text>
+        </view>
 
-      <YunListStatus
-        :loading="loading"
-        :refreshing="refreshing"
-        :loading-more="loadingMore"
-        :loaded="loaded"
-        :has-more="hasMore"
-        :has-items="!!records.length"
-        :error-message="errorMessage"
-        :load-more-error="loadMoreError"
-        loading-text="正在读取最近变动..."
-        empty-text="暂无变动记录"
-        empty-icon="i-carbon-recently-viewed"
-        @retry="loadMoreError ? loadRecentChanges() : loadRecentChanges({ reset: true })"
-        @load-more="handleLoadMore"
-      >
-        <view class="vault-history-list">
-          <view
-            v-for="item in records"
-            :key="`${item.card}-${item.id}`"
-            class="vault-history-row"
-            :class="{ 'is-clickable': item.playerId }"
-            hover-class="vault-history-row-hover"
-            @tap="goVaultDetail(item)"
-          >
-            <view class="vault-history-mark" :class="{ 'is-down': item.amount < 0 }">
-              {{ item.amount >= 0 ? '+' : '-' }}
-            </view>
-            <view class="vault-history-main">
-              <view class="vault-history-row-head">
-                <view class="vault-history-row-title">
-                  {{ item.title }}
+        <YunListStatus
+          :loading="loading"
+          :refreshing="refreshing"
+          :loading-more="loadingMore"
+          :loaded="loaded"
+          :has-more="hasMore"
+          :has-items="!!records.length"
+          :error-message="errorMessage"
+          :load-more-error="loadMoreError"
+          loading-text="正在读取最近变动..."
+          empty-text="暂无变动记录"
+          empty-icon="i-carbon-recently-viewed"
+          @retry="loadMoreError ? loadRecentChanges() : loadRecentChanges({ reset: true })"
+          @load-more="handleLoadMore"
+        >
+          <view class="vault-history-list">
+            <view
+              v-for="item in records"
+              :key="`${item.card}-${item.id}`"
+              class="vault-history-row"
+              :class="{ 'is-clickable': item.playerId }"
+              hover-class="vault-history-row-hover"
+              @tap="goVaultDetail(item)"
+            >
+              <view class="vault-history-mark" :class="{ 'is-down': item.amount < 0 }">
+                {{ item.amount >= 0 ? '+' : '-' }}
+              </view>
+              <view class="vault-history-main">
+                <view class="vault-history-row-head">
+                  <view class="vault-history-row-title">
+                    {{ item.title }}
+                  </view>
+                  <view class="vault-history-row-anchor">
+                    {{ item.playerName }}
+                  </view>
                 </view>
-                <view class="vault-history-row-anchor">
-                  {{ item.playerName }}
+                <view class="vault-history-row-desc">
+                  {{ item.time }} · {{ item.remark }}
                 </view>
               </view>
-              <view class="vault-history-row-desc">
-                {{ item.time }} · {{ item.remark }}
+              <view class="vault-history-amount" :class="{ 'is-down': item.amount < 0 }">
+                {{ formatSignedIntegerMoney(item.amount) }}
               </view>
-            </view>
-            <view class="vault-history-amount" :class="{ 'is-down': item.amount < 0 }">
-              {{ formatSignedIntegerMoney(item.amount) }}
             </view>
           </view>
-        </view>
-      </YunListStatus>
-    </view>
+        </YunListStatus>
+      </view>
+    </scroll-view>
 
-    <BackTopButton :visible="showBackTop" />
+    <BackTopButton :visible="showBackTop" :page-scroll="false" @back-top="handleBackTop" />
   </view>
 </template>
 
 <style scoped lang="scss">
 .vault-history-page {
   position: relative;
-  min-height: 100vh;
-  overflow-x: hidden;
+  height: 100vh;
+  overflow: hidden;
   background: var(--ephone-bg-scene);
   color: var(--ephone-text);
 }
@@ -245,12 +265,17 @@ onLoad(() => {
   pointer-events: none;
 }
 
-.vault-history-content {
+.vault-history-scroll {
   position: relative;
   z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.vault-history-content {
   box-sizing: border-box;
   max-width: 960rpx;
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0 auto;
   padding: calc(var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 36rpx) 40rpx 160rpx;
 }
