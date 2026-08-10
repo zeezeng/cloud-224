@@ -364,10 +364,10 @@ onLoad(() => {
   max-width: 180rpx;
   overflow: hidden;
   padding: 2rpx 12rpx;
-  border: 1rpx solid rgba(217, 175, 96, 0.32);
+  border: 1rpx solid rgba(233, 138, 182, 0.32);
   border-radius: 10rpx;
-  background: rgba(217, 175, 96, 0.1);
-  color: rgba(243, 211, 151, 0.94);
+  background: rgba(233, 138, 182, 0.1);
+  color: var(--ephone-primary-soft);
   font-size: 20rpx;
   font-weight: 700;
   text-overflow: ellipsis;

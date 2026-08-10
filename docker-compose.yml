@@ -1,0 +1,99 @@
+# Mars Admin Docker Compose 编排
+# 使用方式：
+#   首次启动：docker compose up -d
+#   查看日志：docker compose logs -f app
+#   重新构建：docker compose up -d --build
+#   停止服务：docker compose down
+#   清除数据：docker compose down -v
+
+services:
+  # ======================== MySQL 数据库 ========================
+  mysql:
+    image: mysql:8.0
+    container_name: mars-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mars-system}
+      TZ: Asia/Shanghai
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - mars-net
+
+  # ======================== Redis 缓存 ========================
+  redis:
+    image: redis:7-alpine
+    container_name: mars-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mars-net
+
+  # ======================== 后端应用 ========================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mars-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      # Spring 配置覆盖（优先级高于 application-prod.yml）
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mars-system}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      SPRING_DATA_REDIS_DATABASE: ${REDIS_DATABASE:-10}
+      # JVM 参数
+      JAVA_OPTS: "-Xms512m -Xmx512m -Dfile.encoding=UTF-8"
+      TZ: Asia/Shanghai
+    volumes:
+      # 文件上传持久化目录
+      - ./docker/data/upload:/app/data/upload
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - mars-net
+
+volumes:
+  mysql-data:
+    name: mars-mysql-data
+  redis-data:
+    name: mars-redis-data
+
+networks:
+  mars-net:
+    name: mars-net
+    driver: bridge

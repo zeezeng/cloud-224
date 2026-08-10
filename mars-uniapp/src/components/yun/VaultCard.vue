@@ -36,7 +36,7 @@ function handleView() {
         :name="record.name"
         :crown="rank === 1"
         :show-pulse="false"
-        ring-color="rgba(217, 175, 96, 0.88)"
+        ring-color="rgba(233, 138, 182, 0.88)"
         size="lg"
       />
     </view>
@@ -131,10 +131,10 @@ function handleView() {
   min-width: 46rpx;
   height: 34rpx;
   padding: 0 10rpx;
-  border: 1rpx solid rgba(217, 175, 96, 0.38);
+  border: 1rpx solid rgba(233, 138, 182, 0.38);
   border-radius: 999rpx;
-  background: rgba(29, 23, 14, 0.86);
-  color: rgba(244, 211, 151, 0.96);
+  background: rgba(20, 12, 16, 0.86);
+  color: var(--ephone-primary-soft);
   font-size: 20rpx;
   font-weight: 900;
   letter-spacing: 0;
@@ -160,7 +160,7 @@ function handleView() {
 .vault-card-avatar :deep(.anchor-avatar-frame) {
   border-width: 4rpx;
   box-shadow:
-    0 0 0 7rpx rgba(217, 175, 96, 0.08),
+    0 0 0 7rpx rgba(233, 138, 182, 0.08),
     0 0 0 1rpx rgba(255, 255, 255, 0.05),
     0 10rpx 22rpx rgba(0, 0, 0, 0.32);
 }
@@ -211,8 +211,8 @@ function handleView() {
   min-height: 32rpx;
   padding: 0 13rpx;
   border-radius: 999rpx;
-  background: rgba(217, 175, 96, 0.16);
-  color: rgba(239, 215, 172, 0.94);
+  background: rgba(233, 138, 182, 0.16);
+  color: var(--ephone-primary-soft);
   font-size: 20rpx;
   font-weight: 700;
   line-height: 32rpx;
@@ -228,7 +228,7 @@ function handleView() {
 
 .vault-value {
   margin-top: 9rpx;
-  color: #f2d59a;
+  color: var(--ephone-primary-soft);
   font-size: 45rpx;
   font-weight: 900;
   letter-spacing: 0;
@@ -239,7 +239,7 @@ function handleView() {
 .vault-divider {
   height: 1rpx;
   margin: 20rpx 0 17rpx;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.11), rgba(217, 175, 96, 0.16), rgba(255, 255, 255, 0.04));
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.11), rgba(233, 138, 182, 0.16), rgba(255, 255, 255, 0.04));
 }
 
 .vault-daily {
@@ -283,8 +283,8 @@ function handleView() {
 }
 
 .vault-stat-record {
-  background: rgba(178, 127, 235, 0.18);
-  color: #d8a9ff;
+  background: rgba(233, 138, 182, 0.15);
+  color: var(--ephone-primary-soft);
 }
 
 .vault-stat-delta {
@@ -338,9 +338,9 @@ function handleView() {
   height: 48rpx;
   padding: 0 12rpx 0 18rpx;
   border-radius: 999rpx;
-  border: 1rpx solid rgba(217, 175, 96, 0.56);
-  background: rgba(29, 24, 17, 0.52);
-  color: rgba(243, 211, 151, 0.96);
+  border: 1rpx solid rgba(233, 138, 182, 0.56);
+  background: rgba(22, 14, 18, 0.52);
+  color: var(--ephone-primary-soft);
   font-size: 22rpx;
   font-weight: 800;
   line-height: 48rpx;
