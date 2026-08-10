@@ -5,6 +5,7 @@ import { useTokenStore } from '@/store/token'
 import { isDoubleTokenMode } from '@/utils'
 import { toLoginPage } from '@/utils/toLoginPage'
 import { createHttpError, getResponseMessage, HttpErrorType, isSuccessResultCode, ResultEnum, ShowMessage } from './tools/enum'
+import { decryptResponseData } from './tools/crypto'
 
 // 刷新 token 状态管理
 let refreshing = false // 防止重复刷新 token 标识
@@ -127,7 +128,20 @@ export function http<T>(options: CustomRequestOptions) {
             }
             return reject(httpError)
           }
-          return resolve(responseData.data as T)
+
+          const decryptResult = await decryptResponseData(responseData.data as T)
+          if (decryptResult.encrypted && !decryptResult.decrypted) {
+            return reject(createHttpError({
+              type: HttpErrorType.Business,
+              code,
+              statusCode: res.statusCode,
+              message: '响应解密失败，请重试',
+              data: responseData.data,
+              raw: res,
+            }))
+          }
+
+          return resolve(decryptResult.data as T)
         }
 
         // 处理其他错误

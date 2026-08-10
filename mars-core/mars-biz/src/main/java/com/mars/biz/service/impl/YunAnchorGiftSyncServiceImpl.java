@@ -47,8 +47,8 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     private static final String STATUS_ENABLED = "SUCCESS";
     private static final String STATUS_FAILED = "FAILED";
     private static final String STATUS_PARTIAL = "PARTIAL";
+    private static final String BATCH_ABORT_MESSAGE = "首个失败已中止后续批量同步";
 
-    private static final String DATA_SOURCE_BOJIANG = "BOJIANG";
     private static final String DATA_SOURCE_DOSEEING = "DOSEEING";
 
     private final List<AnchorDataClient> anchorDataClients;
@@ -84,7 +84,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         if (anchor == null) {
             throw new BusinessException("主播不存在");
         }
-        return syncAnchors(List.of(anchor), currentPeriods(true, true, true), triggerType, dataSource);
+        return syncAnchors(List.of(anchor), currentPeriods(true, true, true), triggerType, dataSource, false);
     }
 
     @Override
@@ -96,7 +96,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncAll(String triggerType, String dataSource) {
-        return syncAnchors(enabledAnchors(), currentPeriods(true, true, true), triggerType, dataSource);
+        return syncAnchors(enabledAnchors(), currentPeriods(true, true, true), triggerType, dataSource, true);
     }
 
     @Override
@@ -108,19 +108,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncTodayAndMonth(String triggerType, String dataSource) {
-        return syncAnchors(enabledAnchors(), currentPeriods(true, false, true), triggerType, dataSource);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public YunSyncResult syncYesterday(String triggerType) {
-        return syncYesterday(triggerType, null);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public YunSyncResult syncYesterday(String triggerType, String dataSource) {
-        return syncAnchors(enabledAnchors(), currentPeriods(false, true, false), triggerType, dataSource);
+        return syncAnchors(enabledAnchors(), currentPeriods(true, false, true), triggerType, dataSource, false);
     }
 
     private List<YunAnchor> enabledAnchors() {
@@ -157,11 +145,20 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
                     for (SyncPeriod period : periods) {
                         progress.setCurrentAnchorId(anchor.getAnchorId());
                         progress.setCurrentPeriodKey(period.periodKey());
-                        syncOne(anchor, period, dataSource, result);
+                        boolean success = syncOne(anchor, period, dataSource, result);
                         progress.setSuccessCount(result.getSuccessCount());
                         progress.setFailCount(result.getFailCount());
                         progress.setCompletedCount(progress.getCompletedCount() + 1);
+                        if (!success) {
+                            appendBatchAbortMessage(result);
+                        }
                         progress.setErrors(new ArrayList<>(result.getErrors()));
+                        if (!success) {
+                            break;
+                        }
+                    }
+                    if (result.getFailCount() > 0) {
+                        break;
                     }
                 }
                 result.setEndedAt(LocalDateTime.now());
@@ -186,7 +183,8 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         return progress;
     }
 
-    private YunSyncResult syncAnchors(List<YunAnchor> anchors, List<SyncPeriod> periods, String triggerType, String requestedDataSource) {
+    private YunSyncResult syncAnchors(List<YunAnchor> anchors, List<SyncPeriod> periods, String triggerType,
+                                      String requestedDataSource, boolean stopOnFirstFailure) {
         YunSyncResult result = new YunSyncResult();
         LocalDateTime startedAt = LocalDateTime.now();
         result.setStartedAt(startedAt);
@@ -194,7 +192,13 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
 
         for (YunAnchor anchor : anchors) {
             for (SyncPeriod period : periods) {
-                syncOne(anchor, period, requestedDataSource, result);
+                boolean success = syncOne(anchor, period, requestedDataSource, result);
+                if (stopOnFirstFailure && !success) {
+                    appendBatchAbortMessage(result);
+                    result.setEndedAt(LocalDateTime.now());
+                    saveLog(result, periods, triggerType);
+                    return result;
+                }
             }
         }
 
@@ -203,7 +207,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         return result;
     }
 
-    private void syncOne(YunAnchor anchor, SyncPeriod period, String requestedDataSource, YunSyncResult result) {
+    private boolean syncOne(YunAnchor anchor, SyncPeriod period, String requestedDataSource, YunSyncResult result) {
         try {
             AnchorDataClient client = resolveClient(requestedDataSource, anchor.getDataSource());
             BojiangAnchorInfo info = period.month() == null
@@ -212,6 +216,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
             saveStat(anchor, info, period, client.sourceCode());
             updateAnchorProfile(anchor, info, client.sourceCode());
             result.setSuccessCount(result.getSuccessCount() + 1);
+            return true;
         } catch (Exception e) {
             result.setFailCount(result.getFailCount() + 1);
             String message = anchor.getAnchorId() + " " + period.periodKey() + ": " + e.getMessage();
@@ -219,7 +224,15 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
                 result.getErrors().add(message);
             }
             log.warn("同步主播礼物数据失败: {}", message);
+            return false;
         }
+    }
+
+    private void appendBatchAbortMessage(YunSyncResult result) {
+        if (result.getErrors().size() >= 20 || result.getErrors().contains(BATCH_ABORT_MESSAGE)) {
+            return;
+        }
+        result.getErrors().add(BATCH_ABORT_MESSAGE);
     }
 
     private void saveStat(YunAnchor anchor, BojiangAnchorInfo info, SyncPeriod period, String sourceCode) {
@@ -326,13 +339,13 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
             source = normalizeSource(anchorDataSource);
         }
         if (!StringUtils.hasText(source)) {
-            source = DATA_SOURCE_BOJIANG;
+            source = DATA_SOURCE_DOSEEING;
         }
         Map<String, AnchorDataClient> clientMap = anchorDataClients.stream()
                 .collect(Collectors.toMap(client -> normalizeSource(client.sourceCode()), client -> client, (a, b) -> a));
         AnchorDataClient client = clientMap.get(source);
         if (client == null) {
-            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_BOJIANG + "/" + DATA_SOURCE_DOSEEING);
+            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_DOSEEING);
         }
         return client;
     }
@@ -342,7 +355,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
             return null;
         }
         String value = dataSource.trim().toUpperCase(Locale.ROOT);
-        return "MANUAL".equals(value) || "AUTO".equals(value) ? null : value;
+        return "MANUAL".equals(value) || "AUTO".equals(value) || "BOJIANG".equals(value) ? null : value;
     }
 
     private String valueOrFallback(String value, String fallback) {

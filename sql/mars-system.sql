@@ -3145,8 +3145,7 @@ CREATE TABLE `sys_job`  (
 INSERT INTO `sys_job` VALUES (1, '系统默认（无参）', 'DEFAULT', 'sampleTask.noParams', '0/10 * * * * ?', 3, 1, 0, '无参数的示例任务', '2026-01-29 22:42:08', '2026-01-29 22:42:08', NULL, NULL, 0);
 INSERT INTO `sys_job` VALUES (2, '系统默认（有参）', 'DEFAULT', 'sampleTask.withParams(\'hello\')', '0/15 * * * * ?', 3, 1, 0, '有参数的示例任务', '2026-01-29 22:42:08', '2026-01-29 22:42:08', NULL, NULL, 0);
 INSERT INTO `sys_job` VALUES (3, '测试任务', 'DEFAULT', 'sampleTask.noParams', '0/5 * * * * ?', 3, 1, 0, '111', '2026-01-29 22:59:47', '2026-01-29 22:59:47', 1, 1, 0);
-INSERT INTO `sys_job` VALUES (4, '主播今日及本月同步', 'YUN224', 'bojiangSyncTask.syncTodayAndMonth', '0 0/20 * * * ?', 3, 1, 0, '同步主播今日和本月礼物榜，按主播数据源配置执行，建议每10-30分钟执行一次', '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
-INSERT INTO `sys_job` VALUES (5, '主播昨日同步', 'YUN224', 'bojiangSyncTask.syncYesterday', '0 10 0 * * ?', 3, 1, 0, '同步主播昨日礼物榜，按主播数据源配置执行，建议每天00:10后执行一次', '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
+INSERT INTO `sys_job` VALUES (4, '在看今日及本月同步', 'YUN224', 'bojiangSyncTask.syncTodayAndMonth', '0 0/5 * * * ?', 3, 1, 1, '同步在看今日和本月礼物榜，每5分钟执行一次', '2026-08-07 00:00:00', '2026-08-07 00:00:00', 1, 1, 0);
 
 -- ----------------------------
 -- Table structure for sys_job_log

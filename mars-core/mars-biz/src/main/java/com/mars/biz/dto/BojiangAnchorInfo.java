@@ -5,7 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 /**
- * 播酱主播数据映射
+ * 主播数据映射（统一DTO，由各数据源客户端填充）
  */
 @Data
 public class BojiangAnchorInfo {

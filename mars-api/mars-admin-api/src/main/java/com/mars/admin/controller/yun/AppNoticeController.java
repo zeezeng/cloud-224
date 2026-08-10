@@ -26,8 +26,9 @@ public class AppNoticeController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) Integer status) {
-        var result = appNoticeService.page(page, pageSize, title, status);
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer noticeType) {
+        var result = appNoticeService.page(page, pageSize, title, status, noticeType);
         return Result.ok(PageResult.of(result));
     }
 

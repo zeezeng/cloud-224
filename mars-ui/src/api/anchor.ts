@@ -2,7 +2,7 @@ import { request } from '@/utils/request'
 
 export type AnchorStatus = 0 | 1
 export type AnchorFlag = 0 | 1
-export type AnchorDataSource = 'MANUAL' | 'BOJIANG' | 'DOSEEING' | string
+export type AnchorDataSource = 'MANUAL' | 'DOSEEING' | string
 
 export interface YunAnchor {
   id?: number

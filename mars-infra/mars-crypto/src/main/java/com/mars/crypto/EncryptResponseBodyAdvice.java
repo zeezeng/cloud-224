@@ -39,8 +39,6 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             "/auth/register",
             "/auth/captcha",
             "/auth/sms-code",
-            "/app/banner/",
-            "/app/ranking/",
             "/api/mall/",
             "/api/wechat/miniprogram/",
             "/sys/config-group/public",

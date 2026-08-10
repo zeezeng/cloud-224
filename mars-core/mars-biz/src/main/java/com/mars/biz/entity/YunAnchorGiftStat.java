@@ -31,7 +31,7 @@ public class YunAnchorGiftStat extends BaseEntity {
     private String periodKey;
 
     /**
-     * 播酱全站排名
+     * 全站排名
      */
     private Integer externalRankNo;
 
@@ -84,7 +84,7 @@ public class YunAnchorGiftStat extends BaseEntity {
     private String lastStartTime;
 
     /**
-     * 播酱源数据更新时间
+     * 源数据更新时间
      */
     private String sourceUpdateTime;
 

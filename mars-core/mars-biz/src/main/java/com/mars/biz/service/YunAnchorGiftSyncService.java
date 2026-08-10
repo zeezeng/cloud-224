@@ -20,10 +20,6 @@ public interface YunAnchorGiftSyncService {
 
     YunSyncResult syncTodayAndMonth(String triggerType, String dataSource);
 
-    YunSyncResult syncYesterday(String triggerType);
-
-    YunSyncResult syncYesterday(String triggerType, String dataSource);
-
     /**
      * 异步启动全部主播同步，立即返回任务进度。
      */

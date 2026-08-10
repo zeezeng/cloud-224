@@ -27,6 +27,11 @@ public class AppNotice extends BaseEntity {
     private String content;
 
     /**
+     * 公告类型（1跑马灯 2弹窗）
+     */
+    private Integer noticeType;
+
+    /**
      * 排序值，越小越靠前
      */
     private Integer sort;
@@ -40,6 +45,16 @@ public class AppNotice extends BaseEntity {
      * 发布时间
      */
     private LocalDateTime publishedAt;
+
+    /**
+     * 弹窗生效时间（为空表示立即生效，仅弹窗类型有效）
+     */
+    private LocalDateTime validFrom;
+
+    /**
+     * 弹窗失效时间（为空表示长期有效，仅弹窗类型有效）
+     */
+    private LocalDateTime validTo;
 
     /**
      * 备注

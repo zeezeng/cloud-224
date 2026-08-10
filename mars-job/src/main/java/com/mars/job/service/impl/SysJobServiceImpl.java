@@ -26,6 +26,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> implements SysJobService {
 
+    private static final String JOB_NAME = "在看今日及本月同步";
+    private static final String JOB_GROUP = "YUN224";
+    private static final String INVOKE_TARGET = "bojiangSyncTask.syncTodayAndMonth";
+    private static final String CRON_EXPRESSION = "0 0/5 * * * ?";
+    private static final String REMARK = "同步在看今日和本月礼物榜，每5分钟执行一次";
+
     private final Scheduler scheduler;
 
     /**
@@ -33,11 +39,68 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
      */
     @PostConstruct
     public void init() throws SchedulerException {
+        ensureDoseeingSyncJob();
+        removeLegacyYesterdaySyncJob();
         scheduler.clear();
         List<SysJob> jobList = this.list();
         for (SysJob job : jobList) {
             ScheduleUtils.createScheduleJob(scheduler, job);
         }
+    }
+
+    private void ensureDoseeingSyncJob() {
+        LambdaQueryWrapper<SysJob> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysJob::getJobGroup, JOB_GROUP)
+                .eq(SysJob::getInvokeTarget, INVOKE_TARGET);
+        SysJob job = this.list(wrapper).stream().findFirst().orElse(null);
+        if (job == null) {
+            job = new SysJob();
+            job.setJobName(JOB_NAME);
+            job.setJobGroup(JOB_GROUP);
+            job.setInvokeTarget(INVOKE_TARGET);
+            job.setCronExpression(CRON_EXPRESSION);
+            job.setMisfirePolicy(3);
+            job.setConcurrent(1);
+            job.setStatus(1);
+            job.setRemark(REMARK);
+            this.save(job);
+            return;
+        }
+
+        boolean changed = false;
+        if (!JOB_NAME.equals(job.getJobName())) {
+            job.setJobName(JOB_NAME);
+            changed = true;
+        }
+        if (!CRON_EXPRESSION.equals(job.getCronExpression())) {
+            job.setCronExpression(CRON_EXPRESSION);
+            changed = true;
+        }
+        if (!Integer.valueOf(3).equals(job.getMisfirePolicy())) {
+            job.setMisfirePolicy(3);
+            changed = true;
+        }
+        if (!Integer.valueOf(1).equals(job.getConcurrent())) {
+            job.setConcurrent(1);
+            changed = true;
+        }
+        if (!Integer.valueOf(1).equals(job.getStatus())) {
+            job.setStatus(1);
+            changed = true;
+        }
+        if (!REMARK.equals(job.getRemark())) {
+            job.setRemark(REMARK);
+            changed = true;
+        }
+        if (changed) {
+            this.updateById(job);
+        }
+    }
+
+    private void removeLegacyYesterdaySyncJob() {
+        LambdaQueryWrapper<SysJob> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysJob::getId, 5L);
+        this.remove(wrapper);
     }
 
     @Override

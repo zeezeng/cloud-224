@@ -15,6 +15,15 @@
               :options="statusOptions"
             />
           </n-form-item>
+          <n-form-item label="类型">
+            <n-select
+              v-model:value="searchForm.noticeType"
+              placeholder="请选择类型"
+              clearable
+              style="width: 140px"
+              :options="noticeTypeOptions"
+            />
+          </n-form-item>
           <n-form-item>
             <n-space>
               <n-button type="primary" @click="handleSearch">
@@ -64,8 +73,11 @@
     <n-modal v-model:show="modalVisible" preset="card" :title="modalTitle" style="width: 760px">
       <n-form ref="formRef" :model="formData" :rules="formRules" label-placement="left" label-width="92px">
         <n-grid :cols="2" :x-gap="24">
-          <n-form-item-gi label="公告标题" path="title">
-            <n-input v-model:value="formData.title" placeholder="请输入公告标题" maxlength="120" show-count />
+          <n-form-item-gi label="类型" path="noticeType">
+            <n-radio-group v-model:value="formData.noticeType">
+              <n-radio :value="1">跑马灯</n-radio>
+              <n-radio :value="2">弹窗</n-radio>
+            </n-radio-group>
           </n-form-item-gi>
           <n-form-item-gi label="状态" path="status">
             <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
@@ -73,9 +85,34 @@
               <template #unchecked>下线</template>
             </n-switch>
           </n-form-item-gi>
+          <n-form-item-gi v-if="isPopup" label="弹窗标题" path="title">
+            <n-input v-model:value="formData.title" placeholder="请输入弹窗标题" maxlength="120" show-count />
+          </n-form-item-gi>
           <n-form-item-gi label="排序" path="sort">
             <n-input-number v-model:value="formData.sort" :min="0" :step="1" style="width: 100%" />
           </n-form-item-gi>
+          <template v-if="isPopup">
+            <n-form-item-gi label="生效时间" path="validFrom">
+              <n-date-picker
+                v-model:formatted-value="formData.validFrom"
+                type="datetime"
+                clearable
+                value-format="yyyy-MM-dd HH:mm:ss"
+                placeholder="留空则立即生效"
+                style="width: 100%"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi label="失效时间" path="validTo">
+              <n-date-picker
+                v-model:formatted-value="formData.validTo"
+                type="datetime"
+                clearable
+                value-format="yyyy-MM-dd HH:mm:ss"
+                placeholder="留空则长期有效"
+                style="width: 100%"
+              />
+            </n-form-item-gi>
+          </template>
           <n-form-item-gi label="备注" path="remark">
             <n-input v-model:value="formData.remark" placeholder="请输入备注" maxlength="200" show-count />
           </n-form-item-gi>
@@ -120,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
   NIcon,
@@ -133,7 +170,7 @@ import {
   type FormRules
 } from 'naive-ui'
 import { AddOutline, CreateOutline, EyeOutline, RefreshOutline, SearchOutline, StopCircleOutline, TrashOutline, VolumeHighOutline } from '@vicons/ionicons5'
-import { noticeApi, type AppNotice, type NoticeStatus } from '@/api/notice'
+import { noticeApi, type AppNotice, type NoticeStatus, type NoticeType } from '@/api/notice'
 import { useUserStore } from '@/stores/user'
 
 const message = useMessage()
@@ -146,12 +183,19 @@ const statusOptions: Array<{ label: string; value: NoticeStatus }> = [
   { label: '发布', value: 1 }
 ]
 
+const noticeTypeOptions: Array<{ label: string; value: NoticeType }> = [
+  { label: '跑马灯', value: 1 },
+  { label: '弹窗', value: 2 }
+]
+
 const searchForm = reactive<{
   title: string
   status: NoticeStatus | null
+  noticeType: NoticeType | null
 }>({
   title: '',
-  status: null
+  status: null,
+  noticeType: null
 })
 
 const tableData = ref<AppNotice[]>([])
@@ -172,8 +216,11 @@ const formRef = ref<FormInst | null>(null)
 const defaultFormData: AppNotice = {
   title: '',
   content: '',
+  noticeType: 1,
   sort: 0,
   status: 0,
+  validFrom: undefined,
+  validTo: undefined,
   remark: ''
 }
 const formData = reactive<AppNotice>({ ...defaultFormData })
@@ -181,14 +228,28 @@ const formData = reactive<AppNotice>({ ...defaultFormData })
 const detailVisible = ref(false)
 const detailData = ref<AppNotice | null>(null)
 
-const formRules: FormRules = {
-  title: { required: true, message: '请输入公告标题', trigger: ['blur', 'input'] },
-  content: { required: true, message: '请输入公告内容', trigger: ['blur', 'input'] }
-}
+const isPopup = computed(() => formData.noticeType === 2)
+
+const formRules = computed<FormRules>(() => ({
+  content: { required: true, message: '请输入公告内容', trigger: ['blur', 'input'] },
+  title: isPopup.value
+    ? { required: true, message: '弹窗公告标题不能为空', trigger: ['blur', 'input'] }
+    : {}
+}))
 
 const columns: DataTableColumns<AppNotice> = [
   { type: 'selection' },
-  { title: '标题', key: 'title', minWidth: 180, ellipsis: { tooltip: true } },
+  { title: '标题', key: 'title', minWidth: 180, ellipsis: { tooltip: true }, render: row => row.title || row.contentPreview || '-' },
+  {
+    title: '类型',
+    key: 'noticeType',
+    width: 90,
+    render(row) {
+      return h(NTag, { type: row.noticeType === 2 ? 'warning' : 'info', size: 'small' }, {
+        default: () => (row.noticeType === 2 ? '弹窗' : '跑马灯')
+      })
+    }
+  },
   { title: '内容预览', key: 'contentPreview', minWidth: 320, ellipsis: { tooltip: true } },
   { title: '排序', key: 'sort', width: 80 },
   {
@@ -249,7 +310,8 @@ async function loadData() {
       page: pagination.page,
       pageSize: pagination.pageSize,
       title: searchForm.title || undefined,
-      status: searchForm.status ?? undefined
+      status: searchForm.status ?? undefined,
+      noticeType: searchForm.noticeType ?? undefined
     })
     tableData.value = res.list
     pagination.itemCount = res.total
@@ -266,6 +328,7 @@ function handleSearch() {
 function handleReset() {
   searchForm.title = ''
   searchForm.status = null
+  searchForm.noticeType = null
   handleSearch()
 }
 
@@ -317,6 +380,11 @@ async function handleSubmit() {
       title: formData.title?.trim(),
       content: formData.content?.trim(),
       remark: formData.remark?.trim()
+    }
+    // 跑马灯类型清空弹窗专属字段
+    if (submitData.noticeType !== 2) {
+      submitData.validFrom = undefined
+      submitData.validTo = undefined
     }
     if (submitData.id) {
       await noticeApi.update(submitData)

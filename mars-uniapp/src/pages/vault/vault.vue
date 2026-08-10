@@ -40,6 +40,12 @@ const listScrollTop = ref(0)
 let loadGeneration = 0
 let currentListScrollTop = 0
 
+function goHistoryPage() {
+  uni.navigateTo({
+    url: '/pages/vault/history',
+  })
+}
+
 const summaryText = computed(() => {
   if (!loaded.value || loading.value || refreshing.value) {
     return '共 - 位'
@@ -118,6 +124,11 @@ async function loadVaultRecords({ reset = false } = {}) {
 
 function handleSearch(value: string) {
   searchKeyword.value = value.trim()
+  // 清空列表并重置滚动位置，确保搜索结果从序号 1 开始显示
+  records.value = []
+  total.value = 0
+  currentListScrollTop = 0
+  listScrollTop.value = 0
   loadVaultRecords({ reset: true })
 }
 
@@ -181,8 +192,18 @@ onLoad(() => {
 
       <view class="vault-summary-space" />
       <view class="vault-summary">
-        <text>{{ summaryText }}</text>
-        <text class="vault-fetch-time">更新时间：{{ fetchedAt || '--:--:--' }}</text>
+        <view class="vault-summary-left">
+          <text>{{ summaryText }}</text>
+          <text class="vault-fetch-time">· 更新 {{ fetchedAt || '--:--:--' }}</text>
+        </view>
+        <view
+          class="vault-history-btn"
+          hover-class="vault-history-btn-hover"
+          @tap="goHistoryPage"
+        >
+          <view class="i-carbon-recently-viewed vault-history-btn-icon" />
+          <text>最近变动</text>
+        </view>
       </view>
 
       <scroll-view
@@ -268,8 +289,22 @@ onLoad(() => {
 }
 
 .vault-summary .vault-fetch-time {
-  color: rgba(255, 255, 255, 0.56);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 21rpx;
+}
+
+.vault-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.vault-summary-left .vault-fetch-time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vault-list-scroll {
@@ -280,5 +315,27 @@ onLoad(() => {
 
 .vault-list-content {
   padding: 18rpx 0 24rpx;
+}
+
+.vault-history-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  min-height: 40rpx;
+  padding: 0 14rpx 0 12rpx;
+  border: 1rpx solid rgba(217, 175, 96, 0.42);
+  border-radius: 999rpx;
+  background: rgba(29, 24, 17, 0.52);
+  color: rgba(243, 211, 151, 0.96);
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.vault-history-btn-hover {
+  opacity: 0.82;
+}
+
+.vault-history-btn-icon {
+  font-size: 24rpx;
 }
 </style>

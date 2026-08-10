@@ -498,3 +498,76 @@ export async function getVaultRecordDetail(id: string | number): Promise<VaultRe
 export function getVaultRecordFromPlayer(player: VaultPlayer) {
   return toVaultRecord(player)
 }
+
+export interface VaultRecentChange extends EphoneVaultChange {
+  card: string
+  playerId: number
+  playerName: string
+  avatar: string
+  roomId: string
+}
+
+export interface VaultRecentChangePageResult {
+  list: VaultRecentChange[]
+  page: number
+  size: number
+  total: number
+  hasMore: boolean
+}
+
+let playerMapCache: Map<string, VaultPlayer> | null = null
+
+async function getPlayerMap(): Promise<Map<string, VaultPlayer>> {
+  if (playerMapCache) {
+    return playerMapCache
+  }
+  const players = await getAllVaultPlayers()
+  const map = new Map<string, VaultPlayer>()
+  for (const player of players) {
+    const card = trimText(player.card, 40)
+    if (card) {
+      map.set(card, player)
+    }
+  }
+  playerMapCache = map
+  return map
+}
+
+export function clearVaultPlayerCache() {
+  playerMapCache = null
+}
+
+export async function getRecentVaultChanges(params: { page?: number, size?: number } = {}): Promise<VaultRecentChangePageResult> {
+  const page = params.page || 1
+  const size = params.size || VAULT_PAGE_SIZE
+
+  const [logResult, playerMap] = await Promise.all([
+    getVaultLogList({ page, size }),
+    getPlayerMap(),
+  ])
+
+  const total = Number(logResult.total || 0)
+  const logs = Array.isArray(logResult.list) ? logResult.list : []
+
+  const list: VaultRecentChange[] = logs.map((log, index) => {
+    const change = toVaultChange(log, (page - 1) * size + index)
+    const card = trimText(log.card, 40)
+    const player = card ? playerMap.get(card) : undefined
+    return {
+      ...change,
+      card,
+      playerId: player?.id ? Number(player.id) : 0,
+      playerName: player ? getDisplayName(player) : '未知主播',
+      avatar: player ? normalizeAvatar(player) : '',
+      roomId: player ? trimText(player.rid, 24) : '',
+    }
+  })
+
+  return {
+    list,
+    page,
+    size,
+    total,
+    hasMore: page * size < total,
+  }
+}

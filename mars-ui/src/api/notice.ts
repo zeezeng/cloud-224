@@ -1,15 +1,19 @@
 import { request } from '@/utils/request'
 
 export type NoticeStatus = 0 | 1
+export type NoticeType = 1 | 2
 
 export interface AppNotice {
   id?: number
   title?: string
   content?: string
   contentPreview?: string
+  noticeType?: NoticeType
   sort?: number
   status?: NoticeStatus
   publishedAt?: string
+  validFrom?: string
+  validTo?: string
   remark?: string
   createTime?: string
   updateTime?: string
@@ -31,6 +35,7 @@ export const noticeApi = {
     pageSize: number
     title?: string
     status?: NoticeStatus
+    noticeType?: NoticeType
   }) {
     return request<PageResult<AppNotice>>({ url: '/yun/notice/page', method: 'get', params })
   },

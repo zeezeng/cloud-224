@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class YunAnchor extends BaseEntity {
 
     /**
-     * 主播业务唯一ID，当前等同播酱/斗鱼房间号
+     * 主播业务唯一ID，当前等同斗鱼房间号
      */
     private String anchorId;
 
@@ -91,7 +91,7 @@ public class YunAnchor extends BaseEntity {
     private Integer sort;
 
     /**
-     * 数据来源(MANUAL/BOJIANG)
+     * 数据来源(MANUAL/DOSEEING)
      */
     private String dataSource;
 

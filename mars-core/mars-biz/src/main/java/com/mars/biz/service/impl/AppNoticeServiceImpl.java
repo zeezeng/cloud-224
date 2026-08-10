@@ -25,9 +25,11 @@ public class AppNoticeServiceImpl extends ServiceImpl<AppNoticeMapper, AppNotice
     private static final int STATUS_PUBLISHED = 1;
     private static final int DEFAULT_LIMIT = 5;
     private static final int MAX_LIMIT = 20;
+    private static final int TYPE_MARQUEE = 1;
+    private static final int TYPE_POPUP = 2;
 
     @Override
-    public Page<AppNotice> page(Integer page, Integer pageSize, String title, Integer status) {
+    public Page<AppNotice> page(Integer page, Integer pageSize, String title, Integer status, Integer noticeType) {
         Page<AppNotice> pageParam = new Page<>(page, pageSize);
         LambdaQueryWrapper<AppNotice> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(title)) {
@@ -35,6 +37,9 @@ public class AppNoticeServiceImpl extends ServiceImpl<AppNoticeMapper, AppNotice
         }
         if (status != null) {
             wrapper.eq(AppNotice::getStatus, status);
+        }
+        if (noticeType != null) {
+            wrapper.eq(AppNotice::getNoticeType, noticeType);
         }
         wrapper.orderByAsc(AppNotice::getSort)
                 .orderByDesc(AppNotice::getPublishedAt)
@@ -69,6 +74,10 @@ public class AppNoticeServiceImpl extends ServiceImpl<AppNoticeMapper, AppNotice
         AppNotice existing = this.getById(notice.getId());
         if (existing == null) {
             throw new BusinessException("公告不存在");
+        }
+        // 编辑时未传类型则保留原类型，避免被误改为跑马灯
+        if (notice.getNoticeType() == null) {
+            notice.setNoticeType(existing.getNoticeType());
         }
         normalizeAndValidate(notice);
         if (notice.getSort() == null) {
@@ -116,10 +125,27 @@ public class AppNoticeServiceImpl extends ServiceImpl<AppNoticeMapper, AppNotice
         int finalLimit = normalizeLimit(limit);
         LambdaQueryWrapper<AppNotice> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AppNotice::getStatus, STATUS_PUBLISHED)
+                .and(w -> w.eq(AppNotice::getNoticeType, TYPE_MARQUEE).or().isNull(AppNotice::getNoticeType))
                 .orderByAsc(AppNotice::getSort)
                 .orderByDesc(AppNotice::getPublishedAt)
                 .orderByDesc(AppNotice::getId)
                 .last("limit " + finalLimit);
+        List<AppNotice> list = this.list(wrapper);
+        list.forEach(this::fillPreview);
+        return list;
+    }
+
+    @Override
+    public List<AppNotice> listActivePopup() {
+        LocalDateTime now = LocalDateTime.now();
+        LambdaQueryWrapper<AppNotice> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AppNotice::getNoticeType, TYPE_POPUP)
+                .eq(AppNotice::getStatus, STATUS_PUBLISHED)
+                .and(w -> w.isNull(AppNotice::getValidFrom).or().le(AppNotice::getValidFrom, now))
+                .and(w -> w.isNull(AppNotice::getValidTo).or().ge(AppNotice::getValidTo, now))
+                .orderByAsc(AppNotice::getSort)
+                .orderByDesc(AppNotice::getPublishedAt)
+                .orderByDesc(AppNotice::getId);
         List<AppNotice> list = this.list(wrapper);
         list.forEach(this::fillPreview);
         return list;
@@ -144,14 +170,28 @@ public class AppNoticeServiceImpl extends ServiceImpl<AppNoticeMapper, AppNotice
         if (notice == null) {
             throw new BusinessException("公告信息不能为空");
         }
-        if (!StringUtils.hasText(notice.getTitle())) {
-            throw new BusinessException("公告标题不能为空");
-        }
         if (!StringUtils.hasText(notice.getContent())) {
             throw new BusinessException("公告内容不能为空");
         }
 
-        notice.setTitle(notice.getTitle().trim());
+        // 类型默认跑马灯，校验取值
+        if (notice.getNoticeType() == null) {
+            notice.setNoticeType(TYPE_MARQUEE);
+        }
+        if (notice.getNoticeType() != TYPE_MARQUEE && notice.getNoticeType() != TYPE_POPUP) {
+            throw new BusinessException("公告类型不正确");
+        }
+        // 弹窗类型必须有标题
+        if (notice.getNoticeType() == TYPE_POPUP && !StringUtils.hasText(notice.getTitle())) {
+            throw new BusinessException("弹窗公告标题不能为空");
+        }
+
+        // 标题可选：有值则 trim，无值置 null
+        if (StringUtils.hasText(notice.getTitle())) {
+            notice.setTitle(notice.getTitle().trim());
+        } else {
+            notice.setTitle(null);
+        }
         notice.setContent(notice.getContent().trim());
         if (StringUtils.hasText(notice.getRemark())) {
             notice.setRemark(notice.getRemark().trim());

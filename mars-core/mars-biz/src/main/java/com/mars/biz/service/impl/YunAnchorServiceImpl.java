@@ -47,7 +47,6 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
     private static final int SHOW_RANK_ENABLED = 1;
     private static final int AUTO_UPDATE_PROFILE_ENABLED = 1;
     private static final String DATA_SOURCE_MANUAL = "MANUAL";
-    private static final String DATA_SOURCE_BOJIANG = "BOJIANG";
     private static final String DATA_SOURCE_DOSEEING = "DOSEEING";
     private static final String PERIOD_TYPE_DAY = "DAY";
     private static final String PERIOD_TYPE_MONTH = "MONTH";
@@ -111,7 +110,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
 
     @Override
     public YunAnchor fetchPreview(String anchorId) {
-        return fetchPreview(anchorId, DATA_SOURCE_BOJIANG);
+        return fetchPreview(anchorId, DATA_SOURCE_DOSEEING);
     }
 
     @Override
@@ -136,7 +135,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
 
     @Override
     public YunAnchorBatchCreateResult batchCreate(List<String> anchorIds) {
-        return batchCreate(anchorIds, DATA_SOURCE_BOJIANG);
+        return batchCreate(anchorIds, DATA_SOURCE_DOSEEING);
     }
 
     @Override
@@ -341,13 +340,13 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
     private AnchorDataClient resolveClient(String dataSource) {
         String source = normalizeSource(dataSource);
         if (!StringUtils.hasText(source)) {
-            source = DATA_SOURCE_BOJIANG;
+            source = DATA_SOURCE_DOSEEING;
         }
         Map<String, AnchorDataClient> clientMap = anchorDataClients.stream()
                 .collect(Collectors.toMap(client -> normalizeSource(client.sourceCode()), client -> client, (a, b) -> a));
         AnchorDataClient client = clientMap.get(source);
         if (client == null) {
-            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_BOJIANG + "/" + DATA_SOURCE_DOSEEING);
+            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_DOSEEING);
         }
         return client;
     }
@@ -357,7 +356,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
             return null;
         }
         String value = dataSource.trim().toUpperCase(Locale.ROOT);
-        return DATA_SOURCE_MANUAL.equals(value) || "AUTO".equals(value) ? null : value;
+        return DATA_SOURCE_MANUAL.equals(value) || "AUTO".equals(value) || "BOJIANG".equals(value) ? null : value;
     }
 
     private YunAnchor previewAnchor(String anchorId, AnchorDataClient client) {

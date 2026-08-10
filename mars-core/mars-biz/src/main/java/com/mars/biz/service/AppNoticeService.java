@@ -14,7 +14,7 @@ public interface AppNoticeService extends IService<AppNotice> {
     /**
      * 后台分页查询
      */
-    Page<AppNotice> page(Integer page, Integer pageSize, String title, Integer status);
+    Page<AppNotice> page(Integer page, Integer pageSize, String title, Integer status, Integer noticeType);
 
     /**
      * 新增
@@ -42,7 +42,12 @@ public interface AppNoticeService extends IService<AppNotice> {
     void offline(Long id);
 
     /**
-     * App 首页已发布公告列表
+     * App 首页跑马灯公告列表（noticeType=1）
      */
     List<AppNotice> listPublished(Integer limit);
+
+    /**
+     * App 当前有效的弹窗公告列表（noticeType=2，发布状态，在有效期内）
+     */
+    List<AppNotice> listActivePopup();
 }

@@ -65,7 +65,7 @@ public class DoseeingClient implements AnchorDataClient {
         } else if (Objects.equals(date, today.minusDays(1))) {
             hours = "yesterday";
         } else {
-            throw new BusinessException("在看公开接口仅支持同步今天和昨天，历史日期请使用播酱");
+            throw new BusinessException("在看公开接口仅支持同步今天和昨天，不支持历史日期");
         }
         return fetchRoomStat(normalizedAnchorId, hours, date == null ? today : date, null);
     }
@@ -75,7 +75,7 @@ public class DoseeingClient implements AnchorDataClient {
         String normalizedAnchorId = requireAnchorId(anchorId);
         YearMonth currentMonth = YearMonth.now();
         if (month != null && !Objects.equals(month, currentMonth)) {
-            throw new BusinessException("在看公开接口仅支持同步本月，历史月份请使用播酱");
+            throw new BusinessException("在看公开接口仅支持同步本月，不支持历史月份");
         }
         return fetchRoomStat(normalizedAnchorId, "thismonth", null, month == null ? currentMonth : month);
     }

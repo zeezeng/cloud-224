@@ -2,7 +2,7 @@
 import type { HomeBanner } from '@/api/banner'
 import { getHomeBannerList, resolveBannerImageUrl } from '@/api/banner'
 import type { HomeNotice } from '@/api/notice'
-import { getHomeNoticeList } from '@/api/notice'
+import { getHomeNoticeList, getPopupNoticeList } from '@/api/notice'
 import { getAnchorGiftRanking } from '@/api/ranking'
 import type { EphoneRankRecord } from '@/data/yun'
 import { homeQuickActions } from '@/data/yun'
@@ -32,6 +32,8 @@ const todayRanking = ref<EphoneRankRecord[]>([])
 const todayRankingUpdatedAt = ref('')
 const homeNotices = ref<HomeNotice[]>([])
 const fallbackNoticeText = '平台数据每 10 分钟更新一次'
+const popupVisible = ref(false)
+const popupNotice = ref<HomeNotice | null>(null)
 
 const rankingUpdatedText = computed(() => {
   return `数据截止时间：${formatClockTime(todayRankingUpdatedAt.value) || '--:--:--'}`
@@ -85,6 +87,7 @@ onMounted(() => {
   loadHomeBanners()
   loadHomeNotices()
   loadTodayRanking()
+  checkPopupNotice()
 })
 
 async function loadTodayRanking() {
@@ -121,17 +124,69 @@ async function loadHomeNotices() {
   }
 }
 
+/** 弹窗公告：本次启动最多检查一次，本地存储已读 id 避免重复弹 */
+const POPUP_READ_KEY = 'popup_notice_read_ids'
+let hasCheckedPopup = false
+
+async function checkPopupNotice() {
+  if (hasCheckedPopup) {
+    return
+  }
+  hasCheckedPopup = true
+  try {
+    const list = await getPopupNoticeList()
+    if (!Array.isArray(list) || list.length === 0) {
+      return
+    }
+    let readIds: number[] = []
+    try {
+      readIds = JSON.parse(uni.getStorageSync(POPUP_READ_KEY) || '[]')
+    }
+    catch {
+      readIds = []
+    }
+    const unread = list.filter(n => n.id != null && !readIds.includes(n.id))
+    if (unread.length === 0) {
+      return
+    }
+    popupNotice.value = unread[0]
+    popupVisible.value = true
+  }
+  catch (error) {
+    console.error('弹窗公告加载失败', error)
+  }
+}
+
+function handlePopupConfirm() {
+  const notice = popupNotice.value
+  if (notice?.id != null) {
+    let readIds: number[] = []
+    try {
+      readIds = JSON.parse(uni.getStorageSync(POPUP_READ_KEY) || '[]')
+    }
+    catch {
+      readIds = []
+    }
+    if (!readIds.includes(notice.id)) {
+      readIds.push(notice.id)
+      uni.setStorageSync(POPUP_READ_KEY, JSON.stringify(readIds))
+    }
+  }
+  popupVisible.value = false
+  popupNotice.value = null
+}
+
 function getBannerImageUrl(banner: HomeBanner) {
   return resolveBannerImageUrl(banner.imageUrl) || fallbackBanner.imageUrl || ''
 }
 
 function formatNoticeText(notice: HomeNotice) {
-  const title = String(notice.title || '').trim()
-  if (title) {
-    return title
+  // 优先使用公告内容，无内容时回退到标题
+  const content = String(notice.contentPreview || notice.content || '').trim()
+  if (content) {
+    return content
   }
-  const preview = String(notice.contentPreview || notice.content || '').trim()
-  return preview
+  return String(notice.title || '').trim()
 }
 
 function shouldAnimateNotice(text: string) {
@@ -279,6 +334,20 @@ function handleBannerTap(banner: HomeBanner) {
   </YunPage>
 
   <AddToDesktopTip />
+
+  <view v-if="popupVisible" class="popup-mask" @tap="handlePopupConfirm">
+    <view class="popup-card" @tap.stop>
+      <view class="popup-header">
+        <view class="i-carbon-notification popup-header-icon" />
+        <text class="popup-header-label">系统公告</text>
+      </view>
+      <text class="popup-title">{{ popupNotice?.title || '系统公告' }}</text>
+      <text class="popup-content">{{ popupNotice?.content }}</text>
+      <view class="popup-btn" @tap="handlePopupConfirm">
+        我知道了
+      </view>
+    </view>
+  </view>
 </template>
 
 <style scoped lang="scss">
@@ -461,6 +530,95 @@ function handleBannerTap(banner: HomeBanner) {
 
   100% {
     transform: translateX(calc(-50% - 36rpx));
+  }
+}
+
+.popup-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 60rpx;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12rpx);
+  -webkit-backdrop-filter: blur(12rpx);
+}
+
+.popup-card {
+  position: relative;
+  width: 100%;
+  max-width: 600rpx;
+  padding: 48rpx 40rpx 36rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  border-radius: 32rpx;
+  background: linear-gradient(180deg, rgba(34, 28, 38, 0.97), rgba(16, 14, 20, 0.98));
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+  text-align: center;
+  animation: popup-in 0.28s ease both;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22rpx;
+  color: var(--ephone-primary-soft);
+}
+
+.popup-header-icon {
+  font-size: 36rpx;
+}
+
+.popup-header-label {
+  margin-left: 10rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.popup-title {
+  display: block;
+  margin-bottom: 20rpx;
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
+.popup-content {
+  display: block;
+  margin-bottom: 40rpx;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 28rpx;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.popup-btn {
+  width: 100%;
+  height: 84rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 42rpx;
+  background: linear-gradient(135deg, var(--ephone-primary), var(--ephone-primary-soft));
+  color: #1a1a1a;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20rpx);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 </style>

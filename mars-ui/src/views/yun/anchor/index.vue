@@ -40,55 +40,59 @@
       </div>
 
       <div class="table-toolbar">
-        <n-space>
-          <n-button v-if="hasPermission('yun:anchor:add')" type="primary" @click="handleAdd">
-            <template #icon><n-icon><AddOutline /></n-icon></template>
-            新增主播
-          </n-button>
-          <n-button v-if="hasPermission('yun:anchor:add')" type="primary" secondary @click="handleBatchAdd">
-            <template #icon><n-icon><CloudUploadOutline /></n-icon></template>
-            批量新增
-          </n-button>
-          <n-select
-            v-if="hasPermission('yun:anchor:sync')"
-            v-model:value="toolbarSyncDataSource"
-            :options="syncSourceOptions"
-            style="width: 150px"
-          />
-          <n-button
-            v-if="hasPermission('yun:anchor:sync')"
-            type="info"
-            :loading="syncAllLoading"
-            :disabled="syncAllTask.running"
-            @click="handleSyncAll"
-          >
-            <template #icon><n-icon><CloudDownloadOutline /></n-icon></template>
-            {{ syncAllTask.running ? '同步中' : '同步全部' }}
-          </n-button>
-          <n-button
-            v-if="hasPermission('yun:anchor:remove')"
-            type="error"
-            :disabled="selectedIds.length === 0"
-            @click="handleBatchDelete"
-          >
-            <template #icon><n-icon><TrashOutline /></n-icon></template>
-            删除{{ selectedIds.length > 0 ? `(${selectedIds.length})` : '' }}
-          </n-button>
-        </n-space>
-      </div>
-
-      <div v-if="syncAllTask.running" class="sync-all-progress-panel">
-        <n-progress
-          type="line"
-          :percentage="syncAllPercent"
-          :show-indicator="false"
-          :height="8"
-          :status="syncAllTask.failCount > 0 ? 'warning' : 'success'"
-        />
-        <span class="sync-all-progress-text">
-          同步中 {{ syncAllTask.completedCount }}/{{ syncAllTask.totalCount }} · 成功 {{ syncAllTask.successCount }} 失败 {{ syncAllTask.failCount }}
-          <template v-if="syncAllTask.currentAnchorId">· 当前：{{ syncAllTask.currentAnchorId }}</template>
-        </span>
+        <div class="table-toolbar-actions">
+          <n-space class="table-toolbar-primary">
+            <n-button v-if="hasPermission('yun:anchor:add')" type="primary" @click="handleAdd">
+              <template #icon><n-icon><AddOutline /></n-icon></template>
+              新增主播
+            </n-button>
+            <n-button v-if="hasPermission('yun:anchor:add')" type="primary" secondary @click="handleBatchAdd">
+              <template #icon><n-icon><CloudUploadOutline /></n-icon></template>
+              批量新增
+            </n-button>
+            <n-button
+              v-if="hasPermission('yun:anchor:sync')"
+              type="info"
+              :loading="syncAllLoading"
+              :disabled="syncAllTask.running"
+              @click="handleSyncAll"
+            >
+              <template #icon><n-icon><CloudDownloadOutline /></n-icon></template>
+              {{ syncAllTask.running ? '同步中' : '同步全部' }}
+            </n-button>
+            <n-button
+              v-if="hasPermission('yun:anchor:remove')"
+              type="error"
+              :disabled="selectedIds.length === 0"
+              @click="handleBatchDelete"
+            >
+              <template #icon><n-icon><TrashOutline /></n-icon></template>
+              删除{{ selectedIds.length > 0 ? `(${selectedIds.length})` : '' }}
+            </n-button>
+            <div
+              v-if="hasPermission('yun:anchor:sync') || hasPermission('yun:anchor:add')"
+              class="sync-platform-meta"
+            >
+              <span class="sync-platform-meta-label">当前同步来源</span>
+              <template v-if="syncSourceOptions.length > 1">
+                <n-select
+                  v-model:value="toolbarSyncDataSource"
+                  :options="syncSourceOptions"
+                  class="sync-platform-meta-select"
+                />
+              </template>
+              <span v-else class="sync-platform-meta-value">{{ dataSourceLabel(toolbarSyncDataSource) }}</span>
+            </div>
+            <n-tooltip>
+              <template #trigger>
+                <n-button quaternary circle @click="handleOpenCookieConfig">
+                  <template #icon><n-icon><SettingsOutline /></n-icon></template>
+                </n-button>
+              </template>
+              在看会员Cookie配置
+            </n-tooltip>
+          </n-space>
+        </div>
       </div>
 
       <n-data-table
@@ -99,7 +103,7 @@
         :pagination="pagination"
         remote
         :row-key="row => row.id"
-        :scroll-x="1320"
+        :scroll-x="1250"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
         @update:checked-row-keys="handleCheck"
@@ -109,7 +113,7 @@
     <n-modal v-model:show="modalVisible" preset="card" :title="modalTitle" style="width: 900px">
       <n-form ref="formRef" :model="formData" :rules="formRules" label-placement="left" label-width="116px">
         <n-alert v-if="!formData.id" type="info" :bordered="false" class="fetch-tip">
-          输入主播ID后可选择播酱或在看自动获取主播资料；也可以只填必填项后手动保存。
+          输入主播ID后点击「自动获取」可按工具栏所选同步平台获取主播资料；也可以只填必填项后手动保存。
         </n-alert>
         <n-grid :cols="2" :x-gap="24">
           <n-form-item-gi label="主播ID" path="anchorId">
@@ -129,9 +133,6 @@
                 自动获取
               </n-button>
             </n-input-group>
-          </n-form-item-gi>
-          <n-form-item-gi label="数据源" path="dataSource">
-            <n-select v-model:value="formData.dataSource" :options="dataSourceOptions" />
           </n-form-item-gi>
           <n-form-item-gi label="房间号" path="roomId">
             <n-input v-model:value="formData.roomId" placeholder="默认等于主播ID" />
@@ -228,13 +229,8 @@
       :closable="!batchSubmitLoading"
     >
       <n-alert type="info" :bordered="false" class="batch-tip">
-        每行输入一个主播ID，提交后会按所选数据源自动获取主播资料；系统会并发处理并显示实时进度。
+        每行输入一个主播ID，提交后会按工具栏所选同步平台自动获取主播资料；系统会并发处理并显示实时进度。
       </n-alert>
-      <n-form label-placement="left" label-width="96px" class="batch-source-form">
-        <n-form-item label="创建数据源">
-          <n-select v-model:value="batchDataSource" :options="createDataSourceOptions" :disabled="batchSubmitLoading" />
-        </n-form-item>
-      </n-form>
       <n-input
         v-model:value="batchAnchorText"
         type="textarea"
@@ -276,6 +272,79 @@
       </template>
     </n-modal>
 
+    <n-modal
+      v-model:show="syncAllModalVisible"
+      preset="card"
+      title="同步全部主播"
+      style="width: 460px"
+      :mask-closable="false"
+      :close-on-esc="false"
+      :closable="!syncAllTask.running"
+    >
+      <div class="sync-all-modal-body">
+        <div class="sync-all-modal-header">
+          <n-spin v-if="syncAllTask.running" size="small" />
+          <span class="sync-all-modal-status" :class="{ 'is-running': syncAllTask.running }">{{ syncAllModalStatus }}</span>
+        </div>
+        <n-progress
+          type="line"
+          :percentage="syncAllPercent"
+          indicator-placement="inside"
+          :height="22"
+          :status="syncAllTask.failCount > 0 ? 'warning' : 'success'"
+          :processing="syncAllTask.running"
+        />
+        <div class="sync-all-modal-stats">
+          <div class="sync-all-modal-stat">
+            <span class="sync-all-modal-stat-label">进度</span>
+            <span class="sync-all-modal-stat-value">{{ syncAllTask.completedCount }} / {{ syncAllTask.totalCount }}</span>
+          </div>
+          <div class="sync-all-modal-stat">
+            <span class="sync-all-modal-stat-label">成功</span>
+            <span class="sync-all-modal-stat-value sync-all-modal-stat-success">{{ syncAllTask.successCount }}</span>
+          </div>
+          <div class="sync-all-modal-stat">
+            <span class="sync-all-modal-stat-label">失败</span>
+            <span class="sync-all-modal-stat-value sync-all-modal-stat-fail">{{ syncAllTask.failCount }}</span>
+          </div>
+        </div>
+        <div v-if="syncAllTask.currentAnchorId && syncAllTask.running" class="sync-all-modal-current">
+          正在同步：{{ syncAllTask.currentAnchorId }}
+        </div>
+        <div v-if="!syncAllTask.running && syncAllTask.errors.length > 0" class="sync-all-modal-errors">
+          <div v-for="error in syncAllTask.errors.slice(0, 5)" :key="error">{{ error }}</div>
+          <div v-if="syncAllTask.errors.length > 5" class="sync-all-modal-errors-more">
+            还有 {{ syncAllTask.errors.length - 5 }} 条失败记录
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <n-space justify="end">
+          <n-button v-if="syncAllTask.running" type="error" @click="handleCancelSyncAll">取消同步</n-button>
+          <n-button v-else type="primary" @click="syncAllModalVisible = false">关闭</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
+    <n-modal v-model:show="cookieModalVisible" preset="card" title="在看会员Cookie配置" style="width: 600px">
+      <n-alert type="info" :bordered="false" style="margin-bottom: 12px">
+        在看网站本月数据需要会员权限。请登录 doseeeing.com 后，按 F12 → Network → 找任意请求 → 复制 Cookie 头的值粘贴到下方。留空则使用未登录的公开接口。
+      </n-alert>
+      <n-input
+        v-model:value="cookieValue"
+        type="textarea"
+        :rows="6"
+        placeholder="粘贴在看网站的Cookie值..."
+        :disabled="cookieSaving"
+      />
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="cookieModalVisible = false">取消</n-button>
+          <n-button type="primary" :loading="cookieSaving" @click="handleSaveCookie">保存</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
     <div v-if="syncingRowIds.length > 0" class="fullscreen-loading">
       <n-spin size="large" />
       <p class="fullscreen-loading-text">正在同步主播数据…</p>
@@ -306,9 +375,11 @@ import {
   CreateOutline,
   RefreshOutline,
   SearchOutline,
+  SettingsOutline,
   TrashOutline
 } from '@vicons/ionicons5'
 import { anchorApi, type AnchorDataSource, type AnchorFlag, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunSyncProgress, type YunSyncResult } from '@/api/anchor'
+import { configGroupApi } from '@/api/org'
 import { useUserStore } from '@/stores/user'
 
 const message = useMessage()
@@ -324,15 +395,10 @@ const statusOptions: Array<{ label: string; value: AnchorStatus }> = [
 
 const dataSourceOptions: Array<{ label: string; value: AnchorDataSource }> = [
   { label: '手动维护', value: 'MANUAL' },
-  { label: '播酱', value: 'BOJIANG' },
   { label: '在看', value: 'DOSEEING' }
 ]
 
-const createDataSourceOptions = dataSourceOptions.filter(option => option.value !== 'MANUAL')
-
 const syncSourceOptions: Array<{ label: string; value: string }> = [
-  { label: '按主播数据源', value: '' },
-  { label: '播酱', value: 'BOJIANG' },
   { label: '在看', value: 'DOSEEING' }
 ]
 
@@ -394,12 +460,25 @@ const syncAllPercent = computed(() => {
   return Math.min(100, Math.round((syncAllTask.completedCount / syncAllTask.totalCount) * 100))
 })
 
+const syncAllModalStatus = computed(() => {
+  if (syncAllTask.running) {
+    return '同步进行中…'
+  }
+  if (syncAllTask.failCount > 0) {
+    return '同步完成（部分失败）'
+  }
+  return '同步完成'
+})
+
 const modalVisible = ref(false)
 const modalTitle = ref('')
 const batchModalVisible = ref(false)
 const batchAnchorText = ref('')
-const batchDataSource = ref<AnchorDataSource>('BOJIANG')
-const toolbarSyncDataSource = ref('')
+const syncAllModalVisible = ref(false)
+const cookieModalVisible = ref(false)
+const cookieValue = ref('')
+const cookieSaving = ref(false)
+const toolbarSyncDataSource = ref<AnchorDataSource>('DOSEEING')
 const batchProcessingIds = ref<string[]>([])
 const formRef = ref<FormInst | null>(null)
 const defaultFormData: YunAnchor = {
@@ -416,7 +495,7 @@ const defaultFormData: YunAnchor = {
   status: 1,
   showRank: 1,
   sort: 0,
-  dataSource: 'BOJIANG',
+  dataSource: 'DOSEEING',
   autoUpdateProfile: 1,
   remark: ''
 }
@@ -481,14 +560,6 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
     }
   },
   { title: '房间号', key: 'roomId', width: 68, render: row => row.roomId || '-' },
-  {
-    title: '数据源',
-    key: 'dataSource',
-    width: 68,
-    render(row) {
-      return h(NTag, { size: 'small', type: row.dataSource === 'DOSEEING' ? 'success' : row.dataSource === 'BOJIANG' ? 'info' : 'default' }, { default: () => dataSourceLabel(row.dataSource) })
-    }
-  },
   { title: '公会', key: 'guildName', width: 72, ellipsis: { tooltip: true }, render: row => row.guildName || '-' },
   { title: '分类', key: 'categoryName', width: 72, ellipsis: { tooltip: true }, render: row => row.categoryName || '-' },
   {
@@ -612,9 +683,6 @@ function formatMoney(value: unknown) {
 }
 
 function dataSourceLabel(value?: string) {
-  if (value === '') {
-    return '按主播数据源'
-  }
   return dataSourceOptions.find(option => option.value === value)?.label || value || '手动维护'
 }
 
@@ -668,9 +736,6 @@ function handleCheck(keys: Array<string | number>) {
 
 function resetForm() {
   Object.assign(formData, { ...defaultFormData })
-  if (!formData.dataSource || formData.dataSource === 'MANUAL') {
-    formData.dataSource = 'BOJIANG'
-  }
   formRef.value?.restoreValidation()
 }
 
@@ -682,7 +747,6 @@ function handleAdd() {
 
 function handleBatchAdd() {
   batchAnchorText.value = ''
-  batchDataSource.value = 'BOJIANG'
   resetBatchProgress()
   batchModalVisible.value = true
 }
@@ -753,7 +817,7 @@ async function handleFetchPreview() {
   }
   previewLoading.value = true
   try {
-    const preview = await anchorApi.fetchPreview(anchorId, formData.dataSource === 'MANUAL' ? 'BOJIANG' : formData.dataSource)
+    const preview = await anchorApi.fetchPreview(anchorId, toolbarSyncDataSource.value || 'DOSEEING')
     Object.assign(formData, {
       ...formData,
       ...preview,
@@ -763,7 +827,7 @@ async function handleFetchPreview() {
       sort: formData.sort ?? 0,
       autoUpdateProfile: formData.autoUpdateProfile ?? 1,
     })
-    message.success(`已获取${dataSourceLabel(formData.dataSource)}资料`)
+    message.success(`已获取${dataSourceLabel(toolbarSyncDataSource.value || 'DOSEEING')}资料`)
 
   } finally {
     previewLoading.value = false
@@ -778,6 +842,7 @@ async function handleSubmit() {
       ...formData,
       anchorId: formData.anchorId?.trim(),
       roomId: formData.roomId?.trim() || formData.anchorId?.trim(),
+      dataSource: toolbarSyncDataSource.value || 'DOSEEING',
     }
     if (submitData.id) {
       await anchorApi.update(submitData)
@@ -833,7 +898,7 @@ async function handleBatchSubmit() {
         nextIndex += 1
         batchProcessingIds.value = [...batchProcessingIds.value, anchorId]
         try {
-          const result = await anchorApi.batchCreate([anchorId], batchDataSource.value)
+          const result = await anchorApi.batchCreate([anchorId], toolbarSyncDataSource.value || 'DOSEEING')
 
           batchProgress.success += result.successCount || 0
           batchProgress.fail += result.failCount || 0
@@ -885,7 +950,7 @@ async function handleSync(row: YunAnchorPageRow) {
   }
   syncingRowIds.value = [...syncingRowIds.value, row.id!]
   try {
-    const result = await anchorApi.sync(row.id!)
+    const result = await anchorApi.sync(row.id!, toolbarSyncDataSource.value || 'DOSEEING')
     renderSyncMessage(result)
     await loadData()
   } finally {
@@ -899,21 +964,31 @@ function handleSyncAll() {
   }
   dialog.warning({
     title: '同步全部主播',
-    content: `将同步所有启用主播的今日、昨日和本月礼物数据（数据源：${dataSourceLabel(toolbarSyncDataSource.value)}），确认继续吗？`,
+    content: `将按当前同步平台（${dataSourceLabel(toolbarSyncDataSource.value)}）同步所有启用主播的今日、昨日和本月礼物数据，确认继续吗？`,
     positiveText: '开始同步',
     negativeText: '取消',
-    onPositiveClick: startSyncAll
+    onPositiveClick: () => {
+      void startSyncAll()
+    }
   })
 }
 
 async function startSyncAll() {
+  syncAllModalVisible.value = true
   syncAllLoading.value = true
+  syncAllTask.running = true
+  syncAllTask.completedCount = 0
+  syncAllTask.successCount = 0
+  syncAllTask.failCount = 0
+  syncAllTask.currentAnchorId = ''
+  syncAllTask.errors = []
   try {
-    const progress: YunSyncProgress = await anchorApi.syncAll(toolbarSyncDataSource.value || undefined)
+    const progress: YunSyncProgress = await anchorApi.syncAll(toolbarSyncDataSource.value || 'DOSEEING')
     applySyncAllProgress(progress)
     startSyncPolling()
   } catch (error) {
     syncAllLoading.value = false
+    syncAllTask.running = false
     message.error('启动同步失败，请稍后重试')
   }
 }
@@ -938,7 +1013,6 @@ function startSyncPolling() {
       if (!syncAllTask.running) {
         stopSyncPolling()
         syncAllLoading.value = false
-        renderSyncAllResult()
         await loadData()
       }
     } catch (error) {
@@ -956,21 +1030,38 @@ function stopSyncPolling() {
   }
 }
 
-function renderSyncAllResult() {
-  const { successCount, failCount, totalCount, errors } = syncAllTask
-  if (failCount > 0) {
-    dialog.warning({
-      title: '同步完成',
-      content: () => h('div', { class: 'batch-result' }, [
-        h('div', `成功：${successCount}，失败：${failCount}，共 ${totalCount}`),
-        h('div', { class: 'batch-result-errors' }, errors.slice(0, 10).map(error => h('div', error))),
-        errors.length > 10 ? h('div', { class: 'batch-result-more' }, `还有 ${errors.length - 10} 条失败记录未展示`) : null,
-      ]),
-      positiveText: '知道了'
-    })
-    return
+function handleCancelSyncAll() {
+  stopSyncPolling()
+  syncAllTask.running = false
+  syncAllLoading.value = false
+  message.info('已取消同步，后台任务可能仍在进行')
+  refreshAnchorRows()
+}
+
+async function handleOpenCookieConfig() {
+  cookieModalVisible.value = true
+  cookieValue.value = ''
+  try {
+    const group = await configGroupApi.getByCode('yunDataSource')
+    if (group?.configValue) {
+      cookieValue.value = JSON.parse(group.configValue).doseeingCookie || ''
+    }
+  } catch {
+    // 配置组不存在时忽略，使用空值
   }
-  message.success(`同步成功：${successCount}/${totalCount}`)
+}
+
+async function handleSaveCookie() {
+  cookieSaving.value = true
+  try {
+    await configGroupApi.save('yunDataSource', { doseseeingCookie: cookieValue.value.trim() })
+    message.success('Cookie 保存成功')
+    cookieModalVisible.value = false
+  } catch {
+    message.error('Cookie 保存失败，请检查系统配置中是否存在 yunDataSource 配置组')
+  } finally {
+    cookieSaving.value = false
+  }
 }
 
 function handleDelete(row: YunAnchorPageRow) {
@@ -1025,36 +1116,144 @@ onUnmounted(() => {
   margin-bottom: 12px;
 }
 
-.batch-source-form {
-  margin-bottom: 12px;
+.table-toolbar-actions {
+  width: 100%;
 }
 
-.sync-dialog-desc {
-  margin-bottom: 12px;
-}
-
-.sync-all-progress-panel {
-  display: flex;
+.table-toolbar-primary {
   align-items: center;
-  gap: 12px;
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #fafafa;
+  flex-wrap: wrap;
 }
 
-.sync-all-progress-panel .n-progress {
-  flex: 1;
-}
-
-.sync-all-progress-text {
+.sync-platform-meta {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  color: #666;
-  font-size: 13px;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 32px;
   white-space: nowrap;
+}
+
+.sync-platform-meta-label {
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.sync-platform-meta-value {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f3f6fb;
+  color: #344256;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 0 0 1px #e1e8f0;
+}
+
+.sync-platform-meta-select {
+  width: 148px;
+}
+
+.sync-platform-meta-select :deep(.n-base-selection) {
+  min-height: 32px;
+  border: 1px solid #e1e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.sync-platform-meta-select :deep(.n-base-selection-label) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #344256;
+}
+
+.sync-platform-meta-select :deep(.n-base-selection-placeholder) {
+  color: #98a2b3;
+}
+
+.sync-platform-meta-select :deep(.n-base-selection-arrow) {
+  color: #b4bdc9;
+}
+
+.sync-all-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sync-all-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sync-all-modal-status {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.sync-all-modal-status.is-running {
+  color: #2080f0;
+}
+
+.sync-all-modal-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.sync-all-modal-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sync-all-modal-stat-label {
+  font-size: 12px;
+  color: #8a8f99;
+}
+
+.sync-all-modal-stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.sync-all-modal-stat-success {
+  color: #18a058;
+}
+
+.sync-all-modal-stat-fail {
+  color: #d03050;
+}
+
+.sync-all-modal-current {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #f5f5f5;
+  color: #2080f0;
+  font-size: 13px;
+}
+
+.sync-all-modal-errors {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fff2f0;
+  color: #d03050;
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-all;
+}
+
+.sync-all-modal-errors-more {
+  margin-top: 4px;
+  color: #8a8f99;
 }
 
 .batch-result {

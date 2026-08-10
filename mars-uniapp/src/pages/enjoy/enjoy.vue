@@ -135,6 +135,11 @@ async function loadEnjoyUsers({ reset = false } = {}) {
 
 function handleSearch(value: string) {
   searchKeyword.value = value
+  // 清空列表并重置滚动位置，确保搜索结果从序号 1 开始显示
+  records.value = []
+  total.value = 0
+  currentListScrollTop = 0
+  listScrollTop.value = 0
   loadEnjoyUsers({ reset: true })
 }
 

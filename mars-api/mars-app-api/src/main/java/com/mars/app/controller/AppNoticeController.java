@@ -22,10 +22,18 @@ public class AppNoticeController {
     private final AppNoticeService appNoticeService;
 
     /**
-     * 首页已发布公告列表
+     * 首页跑马灯公告列表
      */
     @GetMapping("/list")
     public Result<List<AppNotice>> list(@RequestParam(required = false) Integer limit) {
         return Result.ok(appNoticeService.listPublished(limit));
+    }
+
+    /**
+     * 当前有效的弹窗公告列表
+     */
+    @GetMapping("/popup")
+    public Result<List<AppNotice>> popup() {
+        return Result.ok(appNoticeService.listActivePopup());
     }
 }

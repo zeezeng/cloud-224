@@ -84,6 +84,8 @@ export default defineConfig({
     'i-carbon-box',
     'i-carbon-search',
     'i-carbon-chevron-right',
+    'i-carbon-chevron-down',
+    'i-carbon-chevron-up',
     'i-carbon-volume-up',
     'i-carbon-notification',
     'i-carbon-calendar',
@@ -93,6 +95,12 @@ export default defineConfig({
     'i-carbon-fire',
     'i-carbon-arrow-up',
     'i-carbon-arrow-down',
+    'i-carbon-recently-viewed',
+    'i-carbon-trash-can',
+    'i-carbon-circle-dash',
+    'i-carbon-cloud-offline',
+    'i-carbon-search-locate',
+    'i-carbon-close',
   ],
   rules: [
     [

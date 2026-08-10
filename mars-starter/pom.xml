@@ -29,6 +29,16 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 数据库版本迁移：启动时自动执行 classpath:db/migration 下的 SQL 脚本 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
         <!-- 后台接口层 -->
         <dependency>
             <groupId>com.mars</groupId>
