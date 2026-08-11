@@ -1,0 +1,6 @@
+{
+  "registry-mirrors": [
+    "https://your-dockerhub-mirror.example.com"
+  ],
+  "max-concurrent-downloads": 10
+}

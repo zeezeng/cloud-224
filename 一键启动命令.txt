@@ -1,1 +1,1 @@
-curl -fsSL https://raw.githubusercontent.com/zeezeng/cloud-224/master/deploy/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/zeezeng/cloud-224/master/deploy/install.sh | GIT_REPO_URL=https://github.com/zeezeng/cloud-224.git GIT_BRANCH=master bash
