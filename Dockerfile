@@ -3,12 +3,14 @@ FROM node:20-alpine AS frontend-builder
 
 ARG NODE_REGISTRY_URL=https://registry.npmmirror.com
 
+ENV NODE_ENV=development
+
 WORKDIR /build/mars-ui
 
 # 先复制 package 文件，利用 Docker 缓存层加速依赖安装
 COPY mars-ui/package.json mars-ui/package-lock.json* ./
 RUN npm config set registry "${NODE_REGISTRY_URL}" \
-    && (npm ci --no-audit --no-fund || npm install --no-audit --no-fund)
+    && (npm ci --include=dev --no-audit --no-fund || npm install --include=dev --no-audit --no-fund)
 
 # 复制前端源码并构建
 # vite.config.ts 中 outDir 指向 ../mars-starter/src/main/resources/static

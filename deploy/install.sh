@@ -5,6 +5,7 @@ set -Eeuo pipefail
 APP_DIR="${APP_DIR:-/opt/cloud-224}"
 REPO_URL="${REPO_URL:-https://github.com/zeezeng/cloud-224.git}"
 BRANCH="${BRANCH:-master}"
+SKIP_GIT_SYNC="${SKIP_GIT_SYNC:-false}"
 APP_PORT="${APP_PORT:-8080}"
 JAVA_OPTS="${JAVA_OPTS:--Xms512m -Xmx512m -Dfile.encoding=UTF-8}"
 MARS_DEMO_MODE="${MARS_DEMO_MODE:-false}"
@@ -93,6 +94,15 @@ ensure_docker() {
 }
 
 git_sync() {
+  if [[ "${SKIP_GIT_SYNC}" == "true" ]]; then
+    if [[ ! -f "${APP_DIR}/docker-compose.yml" ]]; then
+      echo "SKIP_GIT_SYNC=true 时，${APP_DIR} 下必须已存在项目源码。" >&2
+      exit 1
+    fi
+    log "已启用跳过 Git 更新，直接使用 ${APP_DIR} 现有源码"
+    return
+  fi
+
   if [[ -d "${APP_DIR}/.git" ]]; then
     log "检测到已有部署目录，正在更新代码"
     git -C "${APP_DIR}" fetch --all --prune
