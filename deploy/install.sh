@@ -3,8 +3,8 @@
 set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/opt/cloud-224}"
-APP_IMAGE="${APP_IMAGE:-ghcr.io/zeezeng/cloud-224}"
-APP_IMAGE_TAG="${APP_IMAGE_TAG:-latest}"
+REPO_URL="${REPO_URL:-https://github.com/zeezeng/cloud-224.git}"
+BRANCH="${BRANCH:-master}"
 APP_PORT="${APP_PORT:-8080}"
 JAVA_OPTS="${JAVA_OPTS:--Xms512m -Xmx512m -Dfile.encoding=UTF-8}"
 MARS_DEMO_MODE="${MARS_DEMO_MODE:-false}"
@@ -17,9 +17,6 @@ MYSQL_PORT="${MYSQL_PORT:-3306}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 REDIS_PORT="${REDIS_PORT:-6379}"
 REDIS_DATABASE="${REDIS_DATABASE:-10}"
-
-GHCR_USERNAME="${GHCR_USERNAME:-}"
-GHCR_TOKEN="${GHCR_TOKEN:-}"
 
 log() {
   printf '\n[%s] %s\n' "$(date '+%F %T')" "$*"
@@ -52,7 +49,7 @@ install_packages() {
   local manager
   manager="$(detect_pkg_manager)"
   [[ -n "$manager" ]] || {
-    echo "未识别的包管理器，请先手动安装 docker / curl。" >&2
+    echo "未识别的包管理器，请先手动安装 git / docker / curl。" >&2
     exit 1
   }
 
@@ -68,6 +65,15 @@ install_packages() {
       need_root_cmd yum install -y "$@"
       ;;
   esac
+}
+
+ensure_git() {
+  if command -v git >/dev/null 2>&1; then
+    return
+  fi
+
+  log "未检测到 git，正在安装"
+  install_packages git
 }
 
 ensure_docker() {
@@ -86,140 +92,48 @@ ensure_docker() {
   fi
 }
 
-write_env() {
+git_sync() {
+  if [[ -d "${APP_DIR}/.git" ]]; then
+    log "检测到已有部署目录，正在更新代码"
+    git -C "${APP_DIR}" fetch --all --prune
+    git -C "${APP_DIR}" checkout "${BRANCH}" || git -C "${APP_DIR}" checkout -b "${BRANCH}" "origin/${BRANCH}"
+    git -C "${APP_DIR}" pull --ff-only origin "${BRANCH}"
+    return
+  fi
+
+  if [[ -d "${APP_DIR}" ]] && [[ -n "$(find "${APP_DIR}" -mindepth 1 -maxdepth 1 2>/dev/null)" ]]; then
+    echo "部署目录 ${APP_DIR} 已存在且非空，但不是 git 仓库，请先清理后重试。" >&2
+    exit 1
+  fi
+
+  log "正在克隆代码到 ${APP_DIR}"
   mkdir -p "${APP_DIR}"
-
-  if [[ ! -f "${APP_DIR}/.env" ]]; then
-    cat > "${APP_DIR}/.env" <<EOF
-APP_PORT=${APP_PORT}
-APP_IMAGE=${APP_IMAGE}
-APP_IMAGE_TAG=${APP_IMAGE_TAG}
-JAVA_OPTS=${JAVA_OPTS}
-MARS_DEMO_MODE=${MARS_DEMO_MODE}
-APP_LOG_LEVEL=${APP_LOG_LEVEL}
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-MYSQL_DATABASE=${MYSQL_DATABASE}
-MYSQL_PORT=${MYSQL_PORT}
-REDIS_PASSWORD=${REDIS_PASSWORD}
-REDIS_PORT=${REDIS_PORT}
-REDIS_DATABASE=${REDIS_DATABASE}
-EOF
-  fi
-
-  if [[ ! -f "${APP_DIR}/.env.example" ]]; then
-    cp "${APP_DIR}/.env" "${APP_DIR}/.env.example"
-  fi
+  git clone --depth 1 --branch "${BRANCH}" "${REPO_URL}" "${APP_DIR}"
 }
 
-write_compose() {
-  cat > "${APP_DIR}/docker-compose.yml" <<'EOF'
-# Mars Admin 生产编排
-# 生产环境默认拉取 GHCR 镜像，不再从源码构建。
+prepare_env() {
+  local env_path="${APP_DIR}/.env"
+  local example_path="${APP_DIR}/.env.example"
 
-services:
-  mysql:
-    image: mysql:8.0
-    container_name: mars-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-mars-system}
-      TZ: Asia/Shanghai
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    volumes:
-      - ./docker/data/mysql:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
-
-  redis:
-    image: redis:7-alpine
-    container_name: mars-redis
-    restart: unless-stopped
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      TZ: Asia/Shanghai
-    command:
-      - /bin/sh
-      - -c
-      - |
-        if [ -n "$$REDIS_PASSWORD" ]; then
-          exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
-        fi
-        exec redis-server --appendonly yes
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - ./docker/data/redis:/data
-    healthcheck:
-      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli -a \"$$REDIS_PASSWORD\" ping; else redis-cli ping; fi"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  app:
-    image: "${APP_IMAGE:-ghcr.io/zeezeng/cloud-224}:${APP_IMAGE_TAG:-latest}"
-    container_name: mars-app
-    restart: unless-stopped
-    ports:
-      - "${APP_PORT:-8080}:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mars-system}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      SPRING_DATA_REDIS_DATABASE: ${REDIS_DATABASE:-10}
-      JAVA_OPTS: ${JAVA_OPTS:--Xms512m -Xmx512m -Dfile.encoding=UTF-8}
-      MARS_DEMO_MODE: ${MARS_DEMO_MODE:-false}
-      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-info}
-      TZ: Asia/Shanghai
-    volumes:
-      - ./docker/data/uploads:/app/uploads
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 12
-      start_period: 120s
-EOF
-}
-
-ensure_registry_login() {
-  if [[ -n "${GHCR_USERNAME}" && -n "${GHCR_TOKEN}" ]]; then
-    log "登录 GHCR"
-    echo "${GHCR_TOKEN}" | need_root_cmd docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
+  if [[ -f "${env_path}" ]]; then
+    log "检测到 .env 已存在，保留现有配置"
+    return
   fi
-}
 
-compose_pull() {
-  log "拉取镜像"
-  (
-    cd "${APP_DIR}"
-    need_root_cmd docker compose pull
-  )
+  if [[ ! -f "${example_path}" ]]; then
+    echo "缺少 ${example_path}，无法生成环境文件。" >&2
+    exit 1
+  fi
+
+  cp "${example_path}" "${env_path}"
+  log "已生成 ${env_path}，如需自定义端口或密码，请编辑后重新执行脚本"
 }
 
 compose_up() {
-  log "启动服务"
+  log "开始构建并启动容器"
   (
     cd "${APP_DIR}"
-    need_root_cmd docker compose up -d --remove-orphans
+    need_root_cmd docker compose up -d --build --remove-orphans
   )
 }
 
@@ -241,20 +155,18 @@ wait_for_app() {
 
 show_summary() {
   log "部署完成"
-  echo "目录：${APP_DIR}"
-  echo "镜像：${APP_IMAGE}:${APP_IMAGE_TAG}"
+  echo "项目目录：${APP_DIR}"
+  echo "代码仓库：${REPO_URL}"
   echo "访问地址：http://<服务器IP>:${APP_PORT}"
-  echo "日志：cd ${APP_DIR} && sudo docker compose logs -f app"
-  echo "更新：cd ${APP_DIR} && sudo docker compose pull && sudo docker compose up -d"
+  echo "查看日志：cd ${APP_DIR} && sudo docker compose logs -f app"
+  echo "更新部署：cd ${APP_DIR} && sudo docker compose up -d --build"
 }
 
 main() {
+  ensure_git
   ensure_docker
-  mkdir -p "${APP_DIR}/docker/data/mysql" "${APP_DIR}/docker/data/redis" "${APP_DIR}/docker/data/uploads"
-  write_env
-  write_compose
-  ensure_registry_login
-  compose_pull
+  git_sync
+  prepare_env
   compose_up
   wait_for_app
   show_summary

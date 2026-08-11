@@ -1,0 +1,1 @@
+curl -fsSL https://raw.githubusercontent.com/zeezeng/cloud-224/master/deploy/install.sh | bash

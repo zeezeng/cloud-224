@@ -1,5 +1,9 @@
-# Mars Admin 生产编排
-# 生产环境默认拉取 GHCR 镜像，不再从源码构建。
+# Mars Admin Docker Compose 编排
+# 使用方式：
+#   首次启动：docker compose up -d --build
+#   查看日志：docker compose logs -f app
+#   停止服务：docker compose down
+#   更新部署：docker compose up -d --build
 
 services:
   mysql:
@@ -51,7 +55,9 @@ services:
       retries: 10
 
   app:
-    image: "${APP_IMAGE:-ghcr.io/zeezeng/cloud-224}:${APP_IMAGE_TAG:-latest}"
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: mars-app
     restart: unless-stopped
     ports:

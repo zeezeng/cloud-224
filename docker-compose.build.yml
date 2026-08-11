@@ -1,9 +1,0 @@
-# 本地构建覆盖文件
-# 使用方式：
-#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
-
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
