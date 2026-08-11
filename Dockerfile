@@ -76,11 +76,6 @@ LABEL maintainer="mars-admin"
 
 WORKDIR /app
 
-# 安装时区数据与 curl（健康检查用）
-RUN apk add --no-cache tzdata curl \
-    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
-
 # 复制构建好的 jar
 COPY --from=backend-builder /build/mars-starter/target/*.jar app.jar
 
@@ -90,7 +85,8 @@ RUN mkdir -p /app/uploads
 EXPOSE 8080
 
 # JVM 参数可通过 JAVA_OPTS 环境变量覆盖
-ENV JAVA_OPTS="-Xms512m -Xmx512m -Dfile.encoding=UTF-8"
+ENV JAVA_OPTS="-Xms512m -Xmx512m -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
 ENV SPRING_PROFILES_ACTIVE=prod
+ENV TZ=Asia/Shanghai
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
