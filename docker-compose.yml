@@ -58,6 +58,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NODE_REGISTRY_URL: ${NODE_REGISTRY_URL:-https://registry.npmmirror.com}
+        MAVEN_MIRROR_ID: ${MAVEN_MIRROR_ID:-custom-maven-mirror}
+        MAVEN_MIRROR_URL: ${MAVEN_MIRROR_URL:-https://repo.maven.apache.org/maven2}
     container_name: mars-app
     restart: unless-stopped
     ports:

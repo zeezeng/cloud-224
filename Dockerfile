@@ -1,11 +1,13 @@
 # ==================== 阶段1：构建前端 ====================
 FROM node:20-alpine AS frontend-builder
 
+ARG NODE_REGISTRY_URL=https://registry.npmmirror.com
+
 WORKDIR /build/mars-ui
 
 # 先复制 package 文件，利用 Docker 缓存层加速依赖安装
 COPY mars-ui/package.json mars-ui/package-lock.json* ./
-RUN npm config set registry https://registry.npmmirror.com \
+RUN npm config set registry "${NODE_REGISTRY_URL}" \
     && (npm ci --no-audit --no-fund || npm install --no-audit --no-fund)
 
 # 复制前端源码并构建
@@ -18,17 +20,20 @@ RUN npm run build
 # ==================== 阶段2：构建后端 ====================
 FROM maven:3.9-eclipse-temurin-17 AS backend-builder
 
+ARG MAVEN_MIRROR_ID=custom-maven-mirror
+ARG MAVEN_MIRROR_URL=https://repo.maven.apache.org/maven2
+
 WORKDIR /build
 
-# 配置阿里云 Maven 镜像源（解决国内服务器访问中央仓库 DNS/网络问题）
-RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml <<'EOF'
+# 配置可切换的 Maven 镜像源，避免写死单一域名导致构建失败
+RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml <<EOF
 <settings>
   <mirrors>
     <mirror>
-      <id>aliyun</id>
+      <id>${MAVEN_MIRROR_ID}</id>
       <mirrorOf>central</mirrorOf>
-      <name>Aliyun Maven Mirror</name>
-      <url>https://maven.aliyun.com/repository/public</url>
+      <name>Custom Maven Mirror</name>
+      <url>${MAVEN_MIRROR_URL}</url>
     </mirror>
   </mirrors>
 </settings>
