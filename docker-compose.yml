@@ -27,8 +27,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    networks:
-      - mars-net
 
   # ======================== Redis 缓存 ========================
   redis:
@@ -45,8 +43,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - mars-net
 
   # ======================== 后端应用 ========================
   app:
@@ -85,16 +81,9 @@ services:
       timeout: 10s
       retries: 10
       start_period: 60s
-    networks:
-      - mars-net
 
 volumes:
   mysql-data:
     name: mars-mysql-data
   redis-data:
     name: mars-redis-data
-
-networks:
-  mars-net:
-    name: mars-net
-    driver: bridge
