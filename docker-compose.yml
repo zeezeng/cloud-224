@@ -1,9 +1,5 @@
-# Mars Admin Docker Compose 编排
-# 使用方式：
-#   首次启动：docker compose up -d --build
-#   查看日志：docker compose logs -f app
-#   停止服务：docker compose down
-#   更新部署：docker compose up -d --build
+# Mars Admin 生产编排
+# 生产环境默认拉取 GHCR 镜像，不再从源码构建。
 
 services:
   mysql:
@@ -55,9 +51,7 @@ services:
       retries: 10
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: "${APP_IMAGE:-ghcr.io/zeezeng/cloud-224}:${APP_IMAGE_TAG:-latest}"
     container_name: mars-app
     restart: unless-stopped
     ports:
@@ -71,9 +65,9 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       SPRING_DATA_REDIS_DATABASE: ${REDIS_DATABASE:-10}
-      JAVA_OPTS: "${JAVA_OPTS:--Xms512m -Xmx512m -Dfile.encoding=UTF-8}"
-      MARS_DEMO_MODE: "${MARS_DEMO_MODE:-false}"
-      APP_LOG_LEVEL: "${APP_LOG_LEVEL:-info}"
+      JAVA_OPTS: ${JAVA_OPTS:--Xms512m -Xmx512m -Dfile.encoding=UTF-8}
+      MARS_DEMO_MODE: ${MARS_DEMO_MODE:-false}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-info}
       TZ: Asia/Shanghai
     volumes:
       - ./docker/data/uploads:/app/uploads
