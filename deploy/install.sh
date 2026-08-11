@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/opt/cloud-224}"
-GIT_REPO_URL="${GIT_REPO_URL:-https://github.com/zeezeng/cloud-224.git}"
+GIT_REPO_URL="${GIT_REPO_URL:-https://gitee.com/382444017/cloud-224.git}"
 GIT_BRANCH="${GIT_BRANCH:-master}"
 
 APP_IMAGE="${APP_IMAGE:-cloud-224}"
