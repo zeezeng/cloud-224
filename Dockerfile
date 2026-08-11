@@ -77,8 +77,8 @@ RUN apk add --no-cache tzdata curl \
 # 复制构建好的 jar
 COPY --from=backend-builder /build/mars-starter/target/*.jar app.jar
 
-# 创建文件上传目录（用于本地文件存储）
-RUN mkdir -p /app/data/upload
+# 创建文件上传目录（数据库默认本地存储路径为 ./uploads）
+RUN mkdir -p /app/uploads
 
 EXPOSE 8080
 
