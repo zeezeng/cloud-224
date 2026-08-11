@@ -20,6 +20,20 @@ FROM maven:3.9-eclipse-temurin-17 AS backend-builder
 
 WORKDIR /build
 
+# 配置阿里云 Maven 镜像源（解决国内服务器访问中央仓库 DNS/网络问题）
+RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml <<'EOF'
+<settings>
+  <mirrors>
+    <mirror>
+      <id>aliyun</id>
+      <mirrorOf>central</mirrorOf>
+      <name>Aliyun Maven Mirror</name>
+      <url>https://maven.aliyun.com/repository/public</url>
+    </mirror>
+  </mirrors>
+</settings>
+EOF
+
 # 先复制所有 pom.xml，利用 Docker 缓存层加速依赖下载
 COPY pom.xml ./
 COPY mars-common/pom.xml mars-common/
