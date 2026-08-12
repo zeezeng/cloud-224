@@ -1,1 +1,0 @@
-curl -fsSL https://raw.githubusercontent.com/zeezeng/cloud-224/master/deploy/install.sh -o install.sh && chmod +x install.sh && APP_IMAGE=ghcr.io/你的GitHub用户名/cloud-224 APP_IMAGE_TAG=latest GHCR_USERNAME=你的GitHub用户名 GHCR_TOKEN=你的GHCR令牌 MYSQL_ROOT_PASSWORD=请改成强密码 ./install.sh

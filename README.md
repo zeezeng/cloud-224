@@ -343,51 +343,69 @@ npm run dev
 ghcr.io/<你的 GitHub 用户名>/cloud-224
 ```
 
-2. **首次部署服务器**
+2. **服务器准备部署目录**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zeezeng/cloud-224/master/deploy/install.sh -o install.sh
-chmod +x install.sh
+mkdir -p /opt/cloud-224
+cd /opt/cloud-224
 ```
 
-首次执行时直接把关键配置作为环境变量传入：
+把仓库中的 [docker-compose.yml](F:/MyCodes/cloud-224/docker-compose.yml) 和 [.env.example](F:/MyCodes/cloud-224/.env.example) 上传到服务器，并将 `.env.example` 改名为 `.env`。
+
+推荐 `.env` 至少包含：
+
+```env
+APP_PORT=8080
+APP_IMAGE=ghcr.io/zeezeng/cloud-224
+APP_IMAGE_TAG=latest
+JAVA_OPTS=-Xms512m -Xmx512m -Dfile.encoding=UTF-8
+MARS_DEMO_MODE=false
+APP_LOG_LEVEL=info
+MYSQL_ROOT_PASSWORD=请改成强密码
+MYSQL_DATABASE=mars-system
+MYSQL_PORT=3306
+REDIS_PASSWORD=
+REDIS_PORT=6379
+REDIS_DATABASE=10
+```
+
+如果 GHCR 镜像是私有的，先登录：
 
 ```bash
-APP_IMAGE=ghcr.io/你的GitHub用户名/cloud-224 \
-APP_IMAGE_TAG=latest \
-GHCR_USERNAME=你的GitHub用户名 \
-GHCR_TOKEN=你的GHCR令牌 \
-MYSQL_ROOT_PASSWORD=请改成强密码 \
-./install.sh
+docker login ghcr.io -u 你的GitHub用户名
 ```
 
-脚本会自动：
+3. **首次启动**
 
-- 安装 Docker / Docker Compose
-- 下载 `docker-compose.yml` 和 `.env.example` 到 `/opt/cloud-224`
-- 生成或更新 `/opt/cloud-224/.env`
-- 登录 `ghcr.io`
-- 拉取新镜像
-- 执行 `docker compose up -d`
+```bash
+cd /opt/cloud-224
+docker compose pull app
+docker compose up -d
+```
 
-3. **更新版本**
+4. **更新版本**
 
 发布新镜像后，在服务器执行：
 
 ```bash
-APP_IMAGE_TAG=latest ./install.sh
+cd /opt/cloud-224
+docker compose pull app
+docker compose up -d
 ```
 
 如果你要部署指定版本：
 
 ```bash
-APP_IMAGE_TAG=v1.0.0 ./install.sh
+cd /opt/cloud-224
+sed -i 's/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=v1.0.0/' .env
+docker compose pull app
+docker compose up -d
 ```
 
 仓库当前只保留这一条生产部署路径：
 
 - GitHub Actions 构建并发布 GHCR 镜像
-- 服务器执行 `install.sh` 拉取并启动镜像
+- 服务器使用 `docker-compose.yml` 和 `.env` 拉取并启动镜像
 
 ### 默认账号
 
