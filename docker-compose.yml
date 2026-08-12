@@ -1,5 +1,5 @@
 # Mars Admin 生产编排
-# 生产环境采用 Git 部署，服务器通过 docker-compose.build.yml 从源码构建应用镜像。
+# 生产环境推荐从 GHCR 拉取预构建镜像，通过 docker compose pull && up -d 部署。
 
 services:
   mysql:
@@ -51,7 +51,7 @@ services:
       retries: 10
 
   app:
-    image: "${APP_IMAGE:-cloud-224}:${APP_IMAGE_TAG:-local}"
+    image: "${APP_IMAGE:-ghcr.io/your-github-username/cloud-224}:${APP_IMAGE_TAG:-latest}"
     container_name: mars-app
     restart: unless-stopped
     ports:
