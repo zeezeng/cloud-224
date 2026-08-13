@@ -6,7 +6,7 @@ export interface RefreshLimit {
   /**
    * 尝试刷新：允许则返回 true 并记录时间；被限流返回 false。
    */
-  tryRefresh(): boolean
+  tryRefresh: () => boolean
 }
 
 export function useRefreshLimit(intervalMs = 5000): RefreshLimit {

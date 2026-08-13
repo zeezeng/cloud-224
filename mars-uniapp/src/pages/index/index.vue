@@ -5,11 +5,9 @@ import type { HomeNotice } from '@/api/notice'
 import { getHomeNoticeList, getPopupNoticeList } from '@/api/notice'
 import { getAnchorGiftRanking } from '@/api/ranking'
 import type { EphoneRankRecord } from '@/data/yun'
-import { homeQuickActions } from '@/data/yun'
 import { formatClockTime, formatCompactNumber } from '@/utils/yun'
 import YunPanel from '@/components/yun/YunPanel.vue'
 import YunPage from '@/components/yun/YunPage.vue'
-import QuickGrid from '@/components/yun/QuickGrid.vue'
 import RankBadge from '@/components/yun/RankBadge.vue'
 import AnchorAvatar from '@/components/yun/AnchorAvatar.vue'
 import AddToDesktopTip from '@/components/yun/AddToDesktopTip.vue'
@@ -23,6 +21,7 @@ definePage({
   type: 'home',
   style: {
     navigationStyle: 'custom',
+    disableScroll: true,
     navigationBarTitleText: '首页',
     backgroundColor: '#000000',
   },
@@ -31,7 +30,7 @@ definePage({
 const todayRanking = ref<EphoneRankRecord[]>([])
 const todayRankingUpdatedAt = ref('')
 const homeNotices = ref<HomeNotice[]>([])
-const fallbackNoticeText = '平台数据每 10 分钟更新一次'
+const fallbackNoticeText = '您好，欢迎来到224！'
 const popupVisible = ref(false)
 const popupNotice = ref<HomeNotice | null>(null)
 
@@ -238,7 +237,7 @@ function handleBannerTap(banner: HomeBanner) {
 </script>
 
 <template>
-  <YunPage title="云224" subtitle="向阳而生 · 热爱同行 · 闪闪发光" scroll-locked>
+  <YunPage title="云224" subtitle="向阳而生 · 闪闪发光" scroll-locked>
     <view class="home-layout">
       <scroll-view
         class="home-scroll"
@@ -250,25 +249,25 @@ function handleBannerTap(banner: HomeBanner) {
       >
         <view class="home-content">
           <view class="home-banner-frame">
-          <swiper
-            class="home-banner-swiper"
-            :indicator-dots="homeBanners.length > 1"
-            circular
-            autoplay
-            :interval="4200"
-            :duration="360"
-          >
-            <swiper-item v-for="banner in homeBanners" :key="banner.id || banner.imageUrl">
-              <view class="home-banner-slide" @tap="handleBannerTap(banner)">
-                <image
-                  class="home-banner-image"
-                  :src="getBannerImageUrl(banner)"
-                  :alt="banner.title || '首页轮播图'"
-                  mode="aspectFill"
-                />
-              </view>
-            </swiper-item>
-          </swiper>
+            <swiper
+              class="home-banner-swiper"
+              :indicator-dots="homeBanners.length > 1"
+              circular
+              autoplay
+              :interval="4200"
+              :duration="360"
+            >
+              <swiper-item v-for="banner in homeBanners" :key="banner.id || banner.imageUrl">
+                <view class="home-banner-slide" @tap="handleBannerTap(banner)">
+                  <image
+                    class="home-banner-image"
+                    :src="getBannerImageUrl(banner)"
+                    :alt="banner.title || '首页轮播图'"
+                    mode="aspectFill"
+                  />
+                </view>
+              </swiper-item>
+            </swiper>
           </view>
 
           <view class="home-notice">
@@ -327,7 +326,7 @@ function handleBannerTap(banner: HomeBanner) {
             </view>
           </YunPanel>
 
-          <!-- <QuickGrid :items="homeQuickActions" /> -->
+        <!-- <QuickGrid :items="homeQuickActions" /> -->
         </view>
       </scroll-view>
     </view>

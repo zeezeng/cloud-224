@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EphoneRankRecord } from '@/data/yun'
-import { getAnchorGiftRanking, RANKING_PAGE_SIZE, type RankingPeriod } from '@/api/ranking'
+import { getAnchorGiftRanking, RANKING_PAGE_SIZE } from '@/api/ranking'
+import type { RankingPeriod } from '@/api/ranking'
 import BackTopButton from '@/components/yun/BackTopButton.vue'
 import CapsuleTabs from '@/components/yun/CapsuleTabs.vue'
 import PodiumBoard from '@/components/yun/PodiumBoard.vue'
@@ -23,8 +24,8 @@ definePage({
   },
 })
 
-const periodTabs = ['今日', '昨日']
-const periodValues: RankingPeriod[] = ['today', 'yesterday']
+const periodTabs = ['今日', '昨日', '本月']
+const periodValues: RankingPeriod[] = ['today', 'yesterday', 'month']
 
 const activePeriodIndex = ref(0)
 const records = ref<EphoneRankRecord[]>([])
@@ -236,7 +237,7 @@ onLoad(() => {
             <RankingList
               v-if="listRecords.length"
               :records="listRecords"
-              value-label="礼物值"
+              value-label="SR值"
               :start-rank="4"
             />
           </YunListStatus>

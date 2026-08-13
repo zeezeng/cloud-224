@@ -1,12 +1,12 @@
 # 云团一簇（dongdongne）数据 API 接口文档
 
-整理时间：2026-08-08  
+整理时间：2026-08-13（复核更新）  
 来源站点：https://dongdongne.com/ （站名"云团一簇"，团员金库/乐享用户社区站）  
 前端资源：
 
-- `https://dongdongne.com/assets/index-m-ZLnmOI.js`（单页应用主包，接口与字段均从此包反推）
+- `https://dongdongne.com/assets/index-BWBBCwKx.js`（单页应用主包，接口与字段均从此包反推；旧包 `index-m-ZLnmOI.js` 已替换）
 
-说明：本文整理的是云团一簇站内金库/乐享值相关接口。核心 4 个接口（主播/团员列表、详情、金库日志、乐享用户列表）均已实测可用；这些接口不再作为本项目"主播礼物流水收入"的主数据源，主播礼物收入请优先使用在看或播酱。
+说明：本文整理的是云团一簇站内金库/乐享值相关接口。核心 4 个接口（主播/团员列表、详情、金库日志、乐享用户列表）2026-08-13 已实测可用；站点新增的"直播聚合/怪兽来袭"模块接口（多平台房间、弹幕 WebSocket、主播搜索、在看房间数据）当前对外部匿名调用返回 `code:8000` 权限异常，需站点登录态/额外凭据，详见第 6 节。这些接口均不作为本项目"主播礼物流水收入"的主数据源，主播礼物收入请优先使用在看或播酱。
 
 ## 1. 基础约定
 
@@ -48,9 +48,11 @@ fetch(url, { method: "GET", mode: "cors", headers: { "X-Project": "182102" } })
 | --- | --- | --- |
 | `0` | `SUCCESS` | 成功 |
 | `500` | `SERVICE_EXCEPTION` | 服务异常，如详情接口缺 `Referer` |
-| `8000` | `FILE_EXCEPTION` | 权限异常，如缺 `X-Project` 头 |
+| `8000` | `FILE_EXCEPTION` | 权限异常：① 缺 `X-Project` 头；② 直播聚合类接口（`/api/douyu/room`、`/api/doseeing/rooms`、`/api/live-search` 等）匿名/外部调用时返回，需登录态或额外凭据 |
 | `131002` | `...does not exist...` | 数据不存在（id 错误） |
 | `404` | `NOT_FOUND` | 接口不存在/已下线 |
+
+> 实测说明（2026-08-13）：核心金库/乐享值接口用浏览器内 `fetch`（自动带 `Sec-Fetch*` 等浏览器指纹头）可正常返回 `code:0`；用 `curl` 直连时核心列表接口会因缺浏览器指纹头返回 `code:500`/`code:8000`。因此建议用带浏览器 UA + Referer + Origin 的 HTTP 客户端调用。新增的直播聚合类接口即使带 `X-Project` 也返回 `code:8000`，需登录态。
 
 分页请求体（通用）：
 
@@ -94,7 +96,7 @@ POST /api/live/player/list
 }
 ```
 
-- `size` 可加大（实测 `size=200` 可一次拉全 142 条）。
+- `size` 可加大（实测 `size=200` 可一次拉全 140 条，2026-08-13 实测 `total=140`）。
 - 按昵称/名称搜索时在 `search` 前追加 LIKE 条件：
 
 ```json
@@ -266,9 +268,72 @@ POST /api/live/user/list
 
 其中 `pid = 182102`（前端常量），相关图片资源存于腾讯 COS：`https://kid-1300696070.cos.ap-guangzhou.myqcloud.com/chronos_pulse/images/{football|OOTD|OOTD/thumbnail}/`。
 
-## 5. 关键业务口径
+## 5. 直播聚合模块接口（新增，2026-08-13 发现；当前需登录态，外部匿名调用返回 8000）
 
-### 5.1 "今日金库净贡献" = 当日金库日志按 card 聚合
+站点在新版前端（`index-BWBBCwKx.js`）中新增了"直播监控/直播聚合 + 怪兽来袭"功能模块，其接口从主包反推得到。这些接口通过 `api.dongdongne.com` 提供，但**对外部匿名调用（含带 `X-Project`）均返回 `code:8000 FILE_EXCEPTION`**，疑似需要站点登录态或额外凭据，当前不可公开使用。列出供参考：
+
+### 5.1 多平台直播间信息（HTTP）
+
+| 接口 | Method | 用途 |
+| --- | --- | --- |
+| `/api/douyu/room/{roomId}` | GET/POST | 斗鱼直播间信息/弹幕聚合 |
+| `/api/huya/room/{roomId}` | GET/POST | 虎牙直播间信息 |
+| `/api/bilibili/room/{roomId}` | GET/POST | B 站直播间信息 |
+| `/api/douyin/room/{roomId}` | GET/POST | 抖音直播间信息 |
+| `/api/xiaohongshu/room/{roomId}` | GET/POST | 小红书直播间信息 |
+
+`roomId` 为各平台房间号（如斗鱼 `182102`）。前端对象 `pe` 定义：`{douyu, huya, bilibili, douyin, xiaohongshu}` → `/api/{platform}/room/{encodeURIComponent(roomId)}`。
+
+### 5.2 多平台弹幕（WebSocket）
+
+| 接口 | 用途 |
+| --- | --- |
+| `/api/douyu/danmaku/{roomId}` | 斗鱼弹幕 WebSocket |
+| `/api/huya/danmaku/{roomId}` | 虎牙弹幕 WebSocket |
+| `/api/bilibili/danmaku/{roomId}` | B 站弹幕 WebSocket |
+| `/api/douyin/danmaku/{roomId}` | 抖音弹幕 WebSocket |
+| `/api/xiaohongshu/danmaku/{roomId}` | 小红书弹幕 WebSocket |
+
+前端用 WebSocket 连接（`new WebSocket('/api/{platform}/danmaku/{roomId}')`），监听 `danmaku` 事件，字段含 `messageId`、`text`、用户信息等。
+
+### 5.3 主播搜索
+
+```http
+GET /api/live-search?platform={platform}&q={关键词}&limit=20
+```
+
+用于直播聚合弹层按平台搜索主播/房间。返回结构 `{ success, data: [...] }`（`data` 为数组，含 `roomId`/`platform` 等；失败 `{ success:false, error }`）。
+
+### 5.4 在看房间数据
+
+```http
+GET /api/doseeing/rooms?platform={platform}&rids={rid1,rid2,...}&dt={yyyy-MM-dd}
+```
+
+- `platform`：`douyu` / `huya`
+- `rids`：逗号分隔的房间号（每批最多 100 个）
+- `dt`：日期（如 `2026-08-13`）
+- 响应头 `Accept: application/json`
+
+用于批量拉取指定房间在指定日期的"在看"数据。
+
+### 5.5 直播流地址
+
+```http
+GET /api/live-stream/{platform}/{roomId}?quality={quality}
+```
+
+用于获取可播放的直播流地址，参数含平台、房间号、清晰度（`quality`）。
+
+### 5.6 其它
+
+- 怪兽来袭等小游戏模块（`monster-invasion`、`building-defense`、`dojo-cultivation` 等）为前端本地玩法，未见独立公开统计接口。
+
+> 结论：以上直播聚合类接口当前对匿名外部调用不可用（`code:8000`），不建议作为数据源接入；若需接入请先确认站点登录鉴权方式。
+
+## 6. 关键业务口径
+
+### 6.1 "今日金库净贡献" = 当日金库日志按 card 聚合
 
 
 前端"每日统计"（dailyStats）逻辑（仅用于云团一簇金库净贡献，不作为主播礼物收入）：
@@ -289,25 +354,25 @@ POST /api/live/user/list
 
 单位是站内"泡点"而非人民币，也不是斗鱼礼物收入；金额展示时前端按 100 折算（`num/100`，见 `El()` 的 `wl(value, 100)`）。
 
-### 5.2 金库余额字段
+### 6.2 金库余额字段
 
 - 主播金库余额：`player.num`（详情页金额优先取 `num`，其次 `balance/playerNum/points_num/value`）。
 - 用户乐享值：`user.pointsTotal`（页面排序/展示"乐享值"即此字段）。
 
-### 5.3 "当前赛季"筛选
+### 6.3 "当前赛季"筛选
 
 前端本地过滤：解析 `player.attribute` JSON，其中含 `online/isCurrentSeason/currentSeason/is_current_season/current_season` 等键的为"当前赛季"团员；接口本身不支持赛季参数。
 
-### 5.4 测试/占位数据
+### 6.4 测试/占位数据
 
 - 主播列表含测试条目 `TEXT/TEST`（rid=111），如需干净数据可按 `rid != 111` 或 `name` 过滤。
 - 部分时间字段为占位值 `0001-12-30`。
 
-## 6. 与播酱数据的定位差异（对接建议）
+## 7. 与播酱数据的定位差异（对接建议）
 
 | 维度 | 播酱（bojianger） | 云团一簇（dongdongne） |
 | --- | --- | --- |
-| 数据范围 | 斗鱼全站主播日报/月报，含礼物总值、热度、弹幕 | 单个团/项目（pid=182102）内收录的主播（约 142 个） |
+| 数据范围 | 斗鱼全站主播日报/月报，含礼物总值、热度、弹幕 | 单个团/项目（pid=182102）内收录的主播（约 140 个） |
 | 主播识别 | `rid`（房间号） | `id`（业务 ID）+ `rid`（房间号），靠 `card` 聚合流水 |
 | 流水口径 | 礼物总值 `yc_gift_value`（元） | 金库泡点增减流水（站内币，按 100 折算；非主播礼物收入） |
 | 接口形态 | GET + token（详情需要） | POST + `X-Project` 头 + Referer（详情需要） |

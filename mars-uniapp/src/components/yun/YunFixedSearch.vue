@@ -42,7 +42,7 @@ function handleSearch(value: string) {
       :placeholder="placeholder"
       :show-button="showButton"
       :variant="variant"
-      @update:modelValue="handleUpdate"
+      @update:model-value="handleUpdate"
       @search="handleSearch"
     />
   </view>

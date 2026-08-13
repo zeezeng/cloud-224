@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
-  search: [value: string]
+  'search': [value: string]
 }>()
 
 function handleInput(event: { detail?: { value?: string } }) {

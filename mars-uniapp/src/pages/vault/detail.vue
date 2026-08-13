@@ -319,7 +319,10 @@ async function handleBackTop() {
   max-width: 960rpx;
   min-height: 100%;
   margin: 0 auto;
-  padding: calc(var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 36rpx) 40rpx 160rpx;
+  padding: calc(
+      var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 36rpx
+    )
+    40rpx 160rpx;
 }
 
 .vault-summary {

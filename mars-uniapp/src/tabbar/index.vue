@@ -153,7 +153,9 @@ function getColorByIndex(index: number) {
   align-items: center;
   justify-content: center;
   min-height: 96rpx;
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .tabbar-cell-active {

@@ -103,7 +103,7 @@
         :pagination="pagination"
         remote
         :row-key="row => row.id"
-        :scroll-x="1250"
+        :scroll-x="2200"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
         @update:checked-row-keys="handleCheck"
@@ -562,30 +562,21 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
   { title: '房间号', key: 'roomId', width: 68, render: row => row.roomId || '-' },
   { title: '公会', key: 'guildName', width: 72, ellipsis: { tooltip: true }, render: row => row.guildName || '-' },
   { title: '分类', key: 'categoryName', width: 72, ellipsis: { tooltip: true }, render: row => row.categoryName || '-' },
-  {
-    title: '今日礼物',
-    key: 'todayGiftValue',
-    width: 84,
-    render(row) {
-      return formatMoney(row.todayGiftValue)
-    }
-  },
-  {
-    title: '昨日礼物',
-    key: 'yesterdayGiftValue',
-    width: 84,
-    render(row) {
-      return formatMoney(row.yesterdayGiftValue)
-    }
-  },
-  {
-    title: '本月礼物',
-    key: 'monthGiftValue',
-    width: 84,
-    render(row) {
-      return formatMoney(row.monthGiftValue)
-    }
-  },
+  { title: '今日SR值', key: 'todaySrValue', width: 88, render: row => formatMoney(row.todaySrValue) },
+  { title: '今日SR人数', key: 'todaySrUserCount', width: 88, render: row => formatInt(row.todaySrUserCount) },
+  { title: '今日LW值', key: 'todayLwValue', width: 88, render: row => formatMoney(row.todayLwValue) },
+  { title: '今日LW人数', key: 'todayLwUserCount', width: 88, render: row => formatInt(row.todayLwUserCount) },
+  { title: '今日开播', key: 'todayStreamHours', width: 84, render: row => formatHours(row.todayStreamHours) },
+  { title: '昨日SR值', key: 'yesterdaySrValue', width: 88, render: row => formatMoney(row.yesterdaySrValue) },
+  { title: '昨日SR人数', key: 'yesterdaySrUserCount', width: 88, render: row => formatInt(row.yesterdaySrUserCount) },
+  { title: '昨日LW值', key: 'yesterdayLwValue', width: 88, render: row => formatMoney(row.yesterdayLwValue) },
+  { title: '昨日LW人数', key: 'yesterdayLwUserCount', width: 88, render: row => formatInt(row.yesterdayLwUserCount) },
+  { title: '昨日开播', key: 'yesterdayStreamHours', width: 84, render: row => formatHours(row.yesterdayStreamHours) },
+  { title: '本月SR值', key: 'monthSrValue', width: 88, render: row => formatMoney(row.monthSrValue) },
+  { title: '本月SR人数', key: 'monthSrUserCount', width: 88, render: row => formatInt(row.monthSrUserCount) },
+  { title: '本月LW值', key: 'monthLwValue', width: 88, render: row => formatMoney(row.monthLwValue) },
+  { title: '本月LW人数', key: 'monthLwUserCount', width: 88, render: row => formatInt(row.monthLwUserCount) },
+  { title: '本月开播', key: 'monthStreamHours', width: 84, render: row => formatHours(row.monthStreamHours) },
   {
     title: '状态',
     key: 'status',
@@ -680,6 +671,16 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
 function formatMoney(value: unknown) {
   const num = Number(value || 0)
   return Number.isFinite(num) ? num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'
+}
+
+function formatInt(value: unknown) {
+  const num = Number(value || 0)
+  return Number.isFinite(num) ? String(Math.trunc(num)) : '-'
+}
+
+function formatHours(value: unknown) {
+  const num = Number(value || 0)
+  return Number.isFinite(num) ? `${num.toFixed(1)} 小时` : '-'
 }
 
 function dataSourceLabel(value?: string) {
@@ -1054,7 +1055,7 @@ async function handleOpenCookieConfig() {
 async function handleSaveCookie() {
   cookieSaving.value = true
   try {
-    await configGroupApi.save('yunDataSource', { doseseeingCookie: cookieValue.value.trim() })
+    await configGroupApi.save('yunDataSource', { doseeingCookie: cookieValue.value.trim() })
     message.success('Cookie 保存成功')
     cookieModalVisible.value = false
   } catch {

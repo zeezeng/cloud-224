@@ -90,7 +90,7 @@ public class YunRankingServiceImpl implements YunRankingService {
                 .map(stat -> toRecord(anchorMap.get(stat.getAnchorId()), stat))
                 .filter(record -> record != null)
                 .sorted(Comparator
-                        .comparing(YunRankingRecord::getGiftTotalValue, Comparator.nullsLast(BigDecimal::compareTo)).reversed()
+                        .comparing(YunRankingRecord::getPaidGiftValue, Comparator.nullsLast(BigDecimal::compareTo)).reversed()
                         .thenComparing(YunRankingRecord::getAnchorId, Comparator.nullsLast(String::compareTo)))
                 .collect(Collectors.toList());
     }

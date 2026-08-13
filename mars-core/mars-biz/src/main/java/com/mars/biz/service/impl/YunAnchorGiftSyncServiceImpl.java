@@ -256,6 +256,8 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         stat.setBagGiftValue(info.getBagGiftValue());
         stat.setFishballGiftCount(info.getFishballGiftCount());
         stat.setGiftUserCount(info.getGiftUserCount());
+        stat.setPaidGiftUserCount(info.getPaidGiftUserCount());
+        stat.setStreamHours(info.getStreamHours());
         stat.setActiveAudienceCount(info.getActiveAudienceCount());
         stat.setDanmuCount(info.getDanmuCount());
         stat.setDanmuUserCount(info.getDanmuUserCount());

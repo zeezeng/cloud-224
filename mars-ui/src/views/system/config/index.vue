@@ -1568,7 +1568,8 @@ async function testPayment(type: 'wechat' | 'alipay') {
 // 加载配置分组
 async function loadGroups() {
   try {
-    configGroups.value = await configGroupApi.list()
+    // 云224数据源（yunDataSource）在主播管理页已有专属配置入口，此处不再展示，避免空白重复项
+    configGroups.value = (await configGroupApi.list()).filter((g) => g.groupCode !== 'yunDataSource')
     if (configGroups.value.length > 0) {
       activeTab.value = configGroups.value[0].groupCode
       await loadConfig(activeTab.value)

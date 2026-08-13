@@ -38,7 +38,7 @@ export function isAesEncryptedData(data: unknown) {
   if (parts.length !== 2)
     return false
 
-  const base64Regex = /^[A-Za-z0-9+/]+=*$/
+  const base64Regex = /^[A-Z0-9+/]+=*$/i
   return parts[0].length === 16 && parts[1].length > 10 && base64Regex.test(parts[0]) && base64Regex.test(parts[1])
 }
 

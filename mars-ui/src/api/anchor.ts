@@ -34,9 +34,24 @@ export interface YunAnchor {
 }
 
 export interface YunAnchorPageRow extends YunAnchor {
-  todayGiftValue?: number | string
-  yesterdayGiftValue?: number | string
-  monthGiftValue?: number | string
+  // 今日
+  todaySrValue?: number | string
+  todaySrUserCount?: number
+  todayLwValue?: number | string
+  todayLwUserCount?: number
+  todayStreamHours?: number | string
+  // 昨日
+  yesterdaySrValue?: number | string
+  yesterdaySrUserCount?: number
+  yesterdayLwValue?: number | string
+  yesterdayLwUserCount?: number
+  yesterdayStreamHours?: number | string
+  // 本月
+  monthSrValue?: number | string
+  monthSrUserCount?: number
+  monthLwValue?: number | string
+  monthLwUserCount?: number
+  monthStreamHours?: number | string
   todaySyncedAt?: string
   yesterdaySyncedAt?: string
   monthSyncedAt?: string

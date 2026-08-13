@@ -169,6 +169,8 @@ public class DoseeingClient implements AnchorDataClient {
         info.setGiftTotalValue(centsToYuan(decimal(stat, "gift.all.price")));
         info.setPaidGiftValue(centsToYuan(decimal(stat, "gift.paid.price")));
         info.setBagGiftValue(info.getGiftTotalValue().subtract(info.getPaidGiftValue()).max(BigDecimal.ZERO));
+        info.setPaidGiftUserCount(integer(stat, "gift.paid.uv"));
+        info.setStreamHours(streamHours(meta));
         info.setFishballGiftCount(BigDecimal.ZERO);
         info.setGiftUserCount(integer(stat, "gift.all.uv"));
         info.setActiveAudienceCount(room == null ? null : integer(room, "ol"));
@@ -234,6 +236,29 @@ public class DoseeingClient implements AnchorDataClient {
             return hours;
         }
         return "统计周期：" + count + ("day".equals(unit) ? "天" : "分钟");
+    }
+
+    private BigDecimal streamHours(JSONObject meta) {
+        if (meta == null) {
+            return null;
+        }
+        String count = text(meta, "count");
+        String unit = text(meta, "unit");
+        if (!StringUtils.hasText(count)) {
+            return null;
+        }
+        try {
+            BigDecimal n = new BigDecimal(count.replace(",", "").trim());
+            if ("day".equals(unit)) {
+                return n.multiply(BigDecimal.valueOf(24)).setScale(2, RoundingMode.HALF_UP);
+            }
+            if ("minute".equals(unit) || "min".equals(unit)) {
+                return n.divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+            }
+            return n.setScale(2, RoundingMode.HALF_UP);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String timestampText(Object value) {

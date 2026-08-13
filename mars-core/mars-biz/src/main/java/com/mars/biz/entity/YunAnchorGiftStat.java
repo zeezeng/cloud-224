@@ -61,6 +61,16 @@ public class YunAnchorGiftStat extends BaseEntity {
     private Integer giftUserCount;
 
     /**
+     * 付费送礼人数(SR人数)
+     */
+    private Integer paidGiftUserCount;
+
+    /**
+     * 开播小时
+     */
+    private BigDecimal streamHours;
+
+    /**
      * 活跃观众
      */
     private Integer activeAudienceCount;

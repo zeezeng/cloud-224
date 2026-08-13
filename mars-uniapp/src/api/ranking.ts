@@ -52,14 +52,12 @@ function toNumber(value: unknown) {
 
 function toRecord(item: AnchorGiftRankingRecord, index: number): EphoneRankRecord {
   const anchorId = String(item.anchorId || item.roomId || '')
-  const value = toNumber(item.giftTotalValue ?? item.gift_total_value ?? item.value ?? item.score)
-  const paidValue = toNumber(item.paidGiftValue ?? item.paid_gift_value)
+  const srValue = toNumber(item.paidGiftValue ?? item.paid_gift_value)
   const giftUsers = Number(item.giftUserCount || 0)
   const subtitleParts = [
     item.roomId ? `房间号：${item.roomId}` : anchorId ? `主播ID：${anchorId}` : '',
     item.guildName ? `公会：${item.guildName}` : '',
     giftUsers ? `送礼人数：${giftUsers}` : '',
-    paidValue ? `付费礼物：${Math.trunc(paidValue).toLocaleString('zh-CN')}` : '',
   ].filter(Boolean)
 
   return {
@@ -67,7 +65,7 @@ function toRecord(item: AnchorGiftRankingRecord, index: number): EphoneRankRecor
     name: String(item.name || `主播 ${anchorId}`).trim(),
     roomId: String(item.roomId || anchorId || '').trim(),
     avatar: String(item.avatar || '').trim(),
-    value: value > 0 && value < 1 ? 1 : Math.round(value),
+    value: srValue > 0 && srValue < 1 ? 1 : Math.round(srValue),
 
     subtitle: subtitleParts[0] || '主播礼物数据',
   }

@@ -36,6 +36,16 @@ public class BojiangAnchorInfo {
 
     private BigDecimal bagGiftValue;
 
+    /**
+     * 付费送礼人数(SR人数)
+     */
+    private Integer paidGiftUserCount;
+
+    /**
+     * 开播小时
+     */
+    private BigDecimal streamHours;
+
     private BigDecimal fishballGiftCount;
 
     private Integer giftUserCount;

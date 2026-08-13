@@ -14,11 +14,26 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class YunAnchorPageRow extends YunAnchor {
 
-    private BigDecimal todayGiftValue;
+    // 今日
+    private BigDecimal todaySrValue;
+    private Integer todaySrUserCount;
+    private BigDecimal todayLwValue;
+    private Integer todayLwUserCount;
+    private BigDecimal todayStreamHours;
 
-    private BigDecimal yesterdayGiftValue;
+    // 昨日
+    private BigDecimal yesterdaySrValue;
+    private Integer yesterdaySrUserCount;
+    private BigDecimal yesterdayLwValue;
+    private Integer yesterdayLwUserCount;
+    private BigDecimal yesterdayStreamHours;
 
-    private BigDecimal monthGiftValue;
+    // 本月
+    private BigDecimal monthSrValue;
+    private Integer monthSrUserCount;
+    private BigDecimal monthLwValue;
+    private Integer monthLwUserCount;
+    private BigDecimal monthStreamHours;
 
     private LocalDateTime todaySyncedAt;
 
