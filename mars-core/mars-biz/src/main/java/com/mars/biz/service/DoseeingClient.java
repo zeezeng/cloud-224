@@ -9,6 +9,7 @@ import com.mars.biz.dto.BojiangAnchorInfo;
 import com.mars.common.exception.BusinessException;
 import com.mars.system.helper.SystemConfigHelper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -27,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * 在看（doseeing）主播公开接口客户端。
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DoseeingClient implements AnchorDataClient {
