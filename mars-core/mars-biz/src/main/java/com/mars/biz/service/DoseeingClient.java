@@ -14,11 +14,15 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 在看（doseeing）主播公开接口客户端。
@@ -33,6 +37,21 @@ public class DoseeingClient implements AnchorDataClient {
     private static final String SUGGEST_URL = BASE_URL + "/api/suggest_all";
     private static final String CONFIG_GROUP_YUN = "yunDataSource";
     private static final int TIMEOUT_MS = 10000;
+
+    // ========== 风控防护：指数退避 + 熔断 ==========
+    /** 失败退避基数(ms)：第 n 次失败后等待 base * 2^(n-1) */
+    private static final long BACKOFF_BASE_MS = 1000L;
+    /** 退避上限(ms)，避免等待过久 */
+    private static final long BACKOFF_MAX_MS = 16000L;
+    /** 连续失败达到该次数后触发熔断 */
+    private static final int CIRCUIT_FAILURE_THRESHOLD = 5;
+    /** 熔断时长(ms)：熔断期内请求快速失败，不再发 HTTP 请求 */
+    private static final long CIRCUIT_OPEN_MS = 60_000L;
+
+    /** 连续失败次数（成功即清零） */
+    private final AtomicInteger consecutiveFailures = new AtomicInteger();
+    /** 熔断解除时间戳 */
+    private final AtomicLong circuitOpenUntilMs = new AtomicLong(0L);
 
     private final SystemConfigHelper configHelper;
 
@@ -120,6 +139,87 @@ public class DoseeingClient implements AnchorDataClient {
     }
 
     private JSONObject requestJson(String url, Map<String, Object> params, String roomId) {
+        // 熔断期内快速失败；有失败历史时按指数退避等待，避免再次被风控
+        throttleIfNeeded();
+        String proxyBase = getProxy();
+        // 仅当日/月统计类请求（含 room/hours 参数）走代理，suggest 兜底接口直连在看
+        boolean useProxy = StringUtils.hasText(proxyBase)
+                && params.containsKey("room")
+                && params.containsKey("hours");
+        String response;
+        try {
+            response = useProxy
+                    ? requestViaProxy(proxyBase, params, roomId)
+                    : requestDirect(url, params, roomId);
+        } catch (BusinessException e) {
+            onRequestFailure();
+            throw e;
+        }
+
+        if (!StringUtils.hasText(response)) {
+            onRequestFailure();
+            throw new BusinessException("在看接口返回为空");
+        }
+        try {
+            JSONObject parsed = JSONUtil.parseObj(response);
+            onRequestSuccess();
+            return parsed;
+        } catch (Exception e) {
+            onRequestFailure();
+            throw new BusinessException("在看接口返回格式异常");
+        }
+    }
+
+    /**
+     * 请求前节流：熔断期内快速失败；否则按连续失败次数指数退避。
+     */
+    private void throttleIfNeeded() {
+        long now = System.currentTimeMillis();
+        long openUntil = circuitOpenUntilMs.get();
+        if (now < openUntil) {
+            throw new BusinessException("在看数据源已触发熔断，暂停请求（剩余 " + (openUntil - now) / 1000 + " 秒）");
+        }
+        int failures = consecutiveFailures.get();
+        if (failures > 0) {
+            long backoffMs = Math.min(BACKOFF_BASE_MS * (1L << Math.min(failures - 1, 10)), BACKOFF_MAX_MS);
+            log.info("在看数据源最近连续失败 {} 次，退避 {} ms 后重试", failures, backoffMs);
+            sleep(backoffMs);
+        }
+    }
+
+    /**
+     * 请求成功：清零连续失败计数。
+     */
+    private void onRequestSuccess() {
+        consecutiveFailures.set(0);
+    }
+
+    /**
+     * 请求失败：累加连续失败次数，达到阈值则触发熔断。
+     */
+    private void onRequestFailure() {
+        int failures = consecutiveFailures.incrementAndGet();
+        if (failures >= CIRCUIT_FAILURE_THRESHOLD) {
+            circuitOpenUntilMs.set(System.currentTimeMillis() + CIRCUIT_OPEN_MS);
+            log.warn("在看数据源连续失败 {} 次，触发熔断 {} 秒", failures, CIRCUIT_OPEN_MS / 1000);
+        }
+    }
+
+    private void sleep(long millis) {
+        if (millis <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * 直连在看接口。
+     */
+    private String requestDirect(String url, Map<String, Object> params, String roomId) {
         String response;
         try (HttpResponse httpResponse = HttpRequest.get(url)
                 .form(params)
@@ -129,27 +229,63 @@ public class DoseeingClient implements AnchorDataClient {
                 .header("Referer", BASE_URL + "/room/" + roomId)
                 .header("Cookie", getCookie())
                 .execute()) {
-            if (httpResponse.getStatus() >= 300 && httpResponse.getStatus() < 400) {
-                throw new BusinessException("在看接口需要登录或被重定向: HTTP " + httpResponse.getStatus());
-            }
-            if (!httpResponse.isOk()) {
-                throw new BusinessException("在看接口 HTTP " + httpResponse.getStatus());
-            }
+            checkHttpStatus(httpResponse);
             response = httpResponse.body();
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
             throw new BusinessException("请求在看接口失败: " + e.getMessage());
         }
+        return response;
+    }
 
-        if (!StringUtils.hasText(response)) {
-            throw new BusinessException("在看接口返回为空");
+    /**
+     * 通过阿里云函数(在看代理)请求：代理返回 {@code {reachable, status, body}}，body 为在看原始 JSON 字符串。
+     */
+    private String requestViaProxy(String proxyBase, Map<String, Object> params, String roomId) {
+        String room = String.valueOf(params.get("room"));
+        String hours = String.valueOf(params.get("hours"));
+        StringBuilder url = new StringBuilder(proxyBase)
+                .append("/probe?room=").append(room)
+                .append("&hours=").append(hours);
+        String cookie = getCookie();
+        if (StringUtils.hasText(cookie)) {
+            url.append("&cookie=").append(URLEncoder.encode(cookie, StandardCharsets.UTF_8));
         }
-        try {
-            return JSONUtil.parseObj(response);
+        try (HttpResponse httpResponse = HttpRequest.get(url.toString())
+                .timeout(TIMEOUT_MS + 15000)
+                .execute()) {
+            String fcBody = httpResponse.body();
+            JSONObject fcJson = JSONUtil.parseObj(fcBody);
+            if (!fcJson.getBool("reachable", false)) {
+                throw new BusinessException("在看代理抓取失败: HTTP " + httpResponse.getStatus() + " " + shortText(fcBody));
+            }
+            String body = fcJson.getStr("body");
+            if (!StringUtils.hasText(body)) {
+                throw new BusinessException("在看代理返回为空");
+            }
+            return body;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            throw new BusinessException("在看接口返回格式异常");
+            throw new BusinessException("请求在看代理接口失败: " + e.getMessage());
         }
+    }
+
+    private void checkHttpStatus(HttpResponse httpResponse) {
+        if (httpResponse.getStatus() >= 300 && httpResponse.getStatus() < 400) {
+            throw new BusinessException("在看接口需要登录或被重定向: HTTP " + httpResponse.getStatus());
+        }
+        if (!httpResponse.isOk()) {
+            throw new BusinessException("在看接口 HTTP " + httpResponse.getStatus());
+        }
+    }
+
+    private String shortText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.length() > 500 ? value.substring(0, 500) : value;
     }
 
     private BojiangAnchorInfo toAnchorInfo(String anchorId, JSONObject stat, JSONObject room, JSONObject meta,
@@ -187,6 +323,10 @@ public class DoseeingClient implements AnchorDataClient {
 
     private String getCookie() {
         return configHelper.getString(CONFIG_GROUP_YUN, "doseeingCookie", "");
+    }
+
+    private String getProxy() {
+        return configHelper.getString(CONFIG_GROUP_YUN, "doseeingProxy", "");
     }
 
     private String requireAnchorId(String anchorId) {

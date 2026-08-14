@@ -337,6 +337,15 @@
         placeholder="粘贴在看网站的Cookie值..."
         :disabled="cookieSaving"
       />
+      <div style="margin-top: 12px">
+        <div style="margin-bottom: 6px; font-size: 13px; color: #666">在看访问代理地址（可选）</div>
+        <n-input
+          v-model:value="proxyValue"
+          type="text"
+          placeholder="留空则直连在看；当本机/服务器 IP 被在看封禁时，填写阿里云函数代理地址（如 https://xxx.cn-shanghai.fcapp.run）"
+          :disabled="cookieSaving"
+        />
+      </div>
       <template #footer>
         <n-space justify="end">
           <n-button @click="cookieModalVisible = false">取消</n-button>
@@ -477,6 +486,7 @@ const batchAnchorText = ref('')
 const syncAllModalVisible = ref(false)
 const cookieModalVisible = ref(false)
 const cookieValue = ref('')
+const proxyValue = ref('')
 const cookieSaving = ref(false)
 const toolbarSyncDataSource = ref<AnchorDataSource>('DOSEEING')
 const batchProcessingIds = ref<string[]>([])
@@ -1042,10 +1052,13 @@ function handleCancelSyncAll() {
 async function handleOpenCookieConfig() {
   cookieModalVisible.value = true
   cookieValue.value = ''
+  proxyValue.value = ''
   try {
     const group = await configGroupApi.getByCode('yunDataSource')
     if (group?.configValue) {
-      cookieValue.value = JSON.parse(group.configValue).doseeingCookie || ''
+      const cfg = JSON.parse(group.configValue)
+      cookieValue.value = cfg.doseeingCookie || ''
+      proxyValue.value = cfg.doseeingProxy || ''
     }
   } catch {
     // 配置组不存在时忽略，使用空值
@@ -1055,7 +1068,10 @@ async function handleOpenCookieConfig() {
 async function handleSaveCookie() {
   cookieSaving.value = true
   try {
-    await configGroupApi.save('yunDataSource', { doseeingCookie: cookieValue.value.trim() })
+    await configGroupApi.save('yunDataSource', {
+      doseeingCookie: cookieValue.value.trim(),
+      doseeingProxy: proxyValue.value.trim(),
+    })
     message.success('Cookie 保存成功')
     cookieModalVisible.value = false
   } catch {

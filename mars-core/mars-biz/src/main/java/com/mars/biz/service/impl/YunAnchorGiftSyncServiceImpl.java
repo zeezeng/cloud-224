@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -50,6 +51,20 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     private static final String BATCH_ABORT_MESSAGE = "首个失败已中止后续批量同步";
 
     private static final String DATA_SOURCE_DOSEEING = "DOSEEING";
+
+    // ========== 风控防护：按需缓存 + 随机间隔 ==========
+    /** AUTO 自动同步的远程拉取缓存有效期(ms)：有效期内不再重复请求远程接口 */
+    private static final long CACHE_TTL_MS = 10 * 60 * 1000L;
+    /** 每次真实远程请求前的随机间隔下限(ms)，打散请求节奏避免被风控 */
+    private static final long RANDOM_DELAY_MIN_MS = 500L;
+    /** 随机间隔上限(ms) */
+    private static final long RANDOM_DELAY_MAX_MS = 1500L;
+
+    /**
+     * 最近一次从远程成功拉取的缓存（key: anchorId:periodKey -> 时间戳）。
+     * 仅对 AUTO 定时同步生效，手动同步始终强制刷新。
+     */
+    private final Map<String, Long> lastRemoteFetchAt = new ConcurrentHashMap<>();
 
     private final List<AnchorDataClient> anchorDataClients;
     private final YunAnchorMapper anchorMapper;
@@ -145,7 +160,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
                     for (SyncPeriod period : periods) {
                         progress.setCurrentAnchorId(anchor.getAnchorId());
                         progress.setCurrentPeriodKey(period.periodKey());
-                        boolean success = syncOne(anchor, period, dataSource, result);
+                        boolean success = syncOne(anchor, period, dataSource, triggerType, result);
                         progress.setSuccessCount(result.getSuccessCount());
                         progress.setFailCount(result.getFailCount());
                         progress.setCompletedCount(progress.getCompletedCount() + 1);
@@ -192,7 +207,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
 
         for (YunAnchor anchor : anchors) {
             for (SyncPeriod period : periods) {
-                boolean success = syncOne(anchor, period, requestedDataSource, result);
+                boolean success = syncOne(anchor, period, requestedDataSource, triggerType, result);
                 if (stopOnFirstFailure && !success) {
                     appendBatchAbortMessage(result);
                     result.setEndedAt(LocalDateTime.now());
@@ -207,14 +222,24 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         return result;
     }
 
-    private boolean syncOne(YunAnchor anchor, SyncPeriod period, String requestedDataSource, YunSyncResult result) {
+    private boolean syncOne(YunAnchor anchor, SyncPeriod period, String requestedDataSource, String triggerType,
+                            YunSyncResult result) {
+        String cacheKey = anchor.getAnchorId() + ":" + period.periodKey();
         try {
+            // AUTO 定时同步且缓存未过期时，跳过远程请求直接复用库中数据
+            if (shouldSkipForCache(cacheKey, triggerType)) {
+                result.setSuccessCount(result.getSuccessCount() + 1);
+                return true;
+            }
+            // 真实远程请求前随机等待，打散请求节奏降低风控风险
+            sleepRandomDelay();
             AnchorDataClient client = resolveClient(requestedDataSource, anchor.getDataSource());
             BojiangAnchorInfo info = period.month() == null
                     ? client.fetchDailyAnchor(anchor.getAnchorId(), period.date())
                     : client.fetchMonthAnchor(anchor.getAnchorId(), period.month());
             saveStat(anchor, info, period, client.sourceCode());
             updateAnchorProfile(anchor, info, client.sourceCode());
+            lastRemoteFetchAt.put(cacheKey, System.currentTimeMillis());
             result.setSuccessCount(result.getSuccessCount() + 1);
             return true;
         } catch (Exception e) {
@@ -225,6 +250,27 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
             }
             log.warn("同步主播礼物数据失败: {}", message);
             return false;
+        }
+    }
+
+    /**
+     * AUTO 自动同步且缓存未过期时跳过远程请求；手动同步始终强制刷新。
+     */
+    private boolean shouldSkipForCache(String cacheKey, String triggerType) {
+        if (!"AUTO".equals(triggerType)) {
+            return false;
+        }
+        Long lastFetch = lastRemoteFetchAt.get(cacheKey);
+        return lastFetch != null && System.currentTimeMillis() - lastFetch < CACHE_TTL_MS;
+    }
+
+    private void sleepRandomDelay() {
+        long delay = RANDOM_DELAY_MIN_MS
+                + ThreadLocalRandom.current().nextLong(RANDOM_DELAY_MAX_MS - RANDOM_DELAY_MIN_MS + 1);
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

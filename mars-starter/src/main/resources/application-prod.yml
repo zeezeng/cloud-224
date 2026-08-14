@@ -72,6 +72,12 @@ mars:
   # false: 关闭演示模式，允许所有操作
   demo-mode: ${MARS_DEMO_MODE:false}
 
+  # 斗鱼实时数据监听（当前方案已废弃，默认关闭；如需启用置为 true 并确保服务器可访问弹幕端口）
+  douyu:
+    monitor:
+      enabled: ${MARS_DOUYU_MONITOR_ENABLED:false}
+      hosts: ${MARS_DOUYU_HOSTS:wss://danmuproxy.douyu.com:8501,wss://danmuproxy.douyu.com:8502,wss://danmuproxy.douyu.com:8503,wss://danmuproxy.douyu.com:8504,wss://danmuproxy.douyu.com:8505,wss://danmuproxy.douyu.com:8506}
+
 # 日志配置
 logging:
   level:
