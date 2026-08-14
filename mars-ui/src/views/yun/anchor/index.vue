@@ -572,6 +572,7 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
   { title: '房间号', key: 'roomId', width: 68, render: row => row.roomId || '-' },
   { title: '公会', key: 'guildName', width: 72, ellipsis: { tooltip: true }, render: row => row.guildName || '-' },
   { title: '分类', key: 'categoryName', width: 72, ellipsis: { tooltip: true }, render: row => row.categoryName || '-' },
+  { title: '更新时间', key: 'updateTime', width: 150, ellipsis: { tooltip: true }, render: row => row.updateTime || '-' },
   { title: '今日SR值', key: 'todaySrValue', width: 88, render: row => formatMoney(row.todaySrValue) },
   { title: '今日SR人数', key: 'todaySrUserCount', width: 88, render: row => formatInt(row.todaySrUserCount) },
   { title: '今日LW值', key: 'todayLwValue', width: 88, render: row => formatMoney(row.todayLwValue) },
@@ -630,7 +631,6 @@ const columns: DataTableColumns<YunAnchorPageRow> = [
     }
   },
   { title: '最近同步', key: 'lastGiftSyncTime', width: 88, ellipsis: { tooltip: true }, render: row => row.lastGiftSyncTime || '-' },
-  { title: '更新时间', key: 'updateTime', width: 88, ellipsis: { tooltip: true }, render: row => row.updateTime || '-' },
   {
     title: '操作',
     key: 'actions',

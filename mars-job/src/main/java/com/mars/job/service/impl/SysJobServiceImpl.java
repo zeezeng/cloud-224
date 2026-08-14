@@ -29,8 +29,8 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
     private static final String JOB_NAME = "在看今日及本月同步";
     private static final String JOB_GROUP = "YUN224";
     private static final String INVOKE_TARGET = "bojiangSyncTask.syncTodayAndMonth";
-    private static final String CRON_EXPRESSION = "0 0/5 * * * ?";
-    private static final String REMARK = "同步在看今日和本月礼物榜，每5分钟执行一次";
+    private static final String CRON_EXPRESSION = "0 0/10 * * * ?";
+    private static final String REMARK = "同步在看今日和本月礼物榜，每10分钟执行一次";
 
     private final Scheduler scheduler;
 
