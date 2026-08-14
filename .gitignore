@@ -50,3 +50,7 @@ mars-uniapp/output/
 # 根目录临时测试数据
 /ddne-*.js
 /ddne-*.txt
+
+# Docker 本地数据卷（MySQL/Redis 等数据库数据文件，不应纳入版本控制；
+# 保留 docker/daemon.json.example 配置示例）
+docker/data/

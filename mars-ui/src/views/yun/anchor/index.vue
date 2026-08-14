@@ -947,9 +947,28 @@ async function handleBatchSubmit() {
   }
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
+
+function showSyncErrors(result: YunSyncResult) {
+  const errors = result.errors || []
+  dialog.warning({
+    title: '同步完成（部分失败）',
+    content: () => h('div', { class: 'batch-result' }, [
+      h('div', `成功：${result.successCount}/${result.totalCount}，失败：${result.failCount}`),
+      errors.length > 0
+        ? h('div', { class: 'batch-result-errors' }, errors.slice(0, 10).map(error => h('div', error)))
+        : h('div', { class: 'batch-result-errors' }, '未返回具体失败原因'),
+      errors.length > 10 ? h('div', { class: 'batch-result-more' }, `还有 ${errors.length - 10} 条失败记录未展示`) : null,
+    ]),
+    positiveText: '知道了'
+  })
+}
+
 function renderSyncMessage(result: YunSyncResult) {
   if (result.failCount > 0) {
-    message.warning(`同步完成：成功 ${result.successCount}，失败 ${result.failCount}`)
+    showSyncErrors(result)
     return
   }
   message.success(`同步成功：${result.successCount}/${result.totalCount}`)
@@ -964,6 +983,8 @@ async function handleSync(row: YunAnchorPageRow) {
     const result = await anchorApi.sync(row.id!, toolbarSyncDataSource.value || 'DOSEEING')
     renderSyncMessage(result)
     await loadData()
+  } catch (error) {
+    message.error(`同步失败：${getErrorMessage(error, '未知错误')}`)
   } finally {
     syncingRowIds.value = syncingRowIds.value.filter(id => id !== row.id)
   }
@@ -1000,7 +1021,7 @@ async function startSyncAll() {
   } catch (error) {
     syncAllLoading.value = false
     syncAllTask.running = false
-    message.error('启动同步失败，请稍后重试')
+    message.error(`启动同步失败：${getErrorMessage(error, '请稍后重试')}`)
   }
 }
 
@@ -1029,7 +1050,7 @@ function startSyncPolling() {
     } catch (error) {
       stopSyncPolling()
       syncAllLoading.value = false
-      message.error('同步进度查询失败，请刷新页面查看结果')
+      message.error(`同步进度查询失败：${getErrorMessage(error, '请刷新页面查看结果')}`)
     }
   }, 1500)
 }
