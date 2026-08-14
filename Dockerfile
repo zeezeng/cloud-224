@@ -69,15 +69,28 @@ COPY --from=frontend-builder /build/mars-starter/src/main/resources/static ./mar
 RUN mvn clean package -DskipTests -B -pl mars-starter -am
 
 
-# ==================== 阶段3：运行时镜像 ====================
+# ==================== 阶段3：解包分层（利用 Docker 层缓存加速生产 pull） ====================
+FROM eclipse-temurin:17-jre-alpine AS app-extractor
+
+WORKDIR /workspace
+
+# 复制构建好的 jar 并解包为分层（layertools 按 dependencies/loader/snapshot/application 拆分）
+COPY --from=backend-builder /build/mars-starter/target/*.jar app.jar
+RUN java -Djarmode=layertools -jar app.jar extract
+
+# ==================== 阶段4：运行时镜像 ====================
 FROM eclipse-temurin:17-jre-alpine
 
 LABEL maintainer="mars-admin"
 
 WORKDIR /app
 
-# 复制构建好的 jar
-COPY --from=backend-builder /build/mars-starter/target/*.jar app.jar
+# 按层复制：依赖层与业务代码层分开成独立 Docker 层，
+# 仅改业务代码时 dependencies 等依赖层不变，生产 docker pull 可复用缓存层，显著加速部署
+COPY --from=app-extractor /workspace/dependencies/ ./
+COPY --from=app-extractor /workspace/spring-boot-loader/ ./
+COPY --from=app-extractor /workspace/snapshot-dependencies/ ./
+COPY --from=app-extractor /workspace/application/ ./
 
 # 创建文件上传目录（数据库默认本地存储路径为 ./uploads）
 RUN mkdir -p /app/uploads
@@ -89,4 +102,5 @@ ENV JAVA_OPTS="-Xms512m -Xmx512m -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shan
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV TZ=Asia/Shanghai
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# 解包后通过 JarLauncher 启动（Spring Boot 3.x 使用 loader.launch 包）
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
