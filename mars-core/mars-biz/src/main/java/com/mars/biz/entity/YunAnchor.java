@@ -16,9 +16,14 @@ import java.time.LocalDateTime;
 public class YunAnchor extends BaseEntity {
 
     /**
-     * 主播业务唯一ID，当前等同斗鱼房间号
+     * 主播业务唯一ID，当前等同直播平台房间号
      */
     private String anchorId;
+
+    /**
+     * 平台(DOUYU-斗鱼 HUYA-虎牙)
+     */
+    private String platform;
 
     /**
      * 直播间号

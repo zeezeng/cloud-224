@@ -54,9 +54,9 @@ function toRecord(item: AnchorGiftRankingRecord, index: number): EphoneRankRecor
   const anchorId = String(item.anchorId || item.roomId || '')
   const srValue = toNumber(item.paidGiftValue ?? item.paid_gift_value)
   const giftUsers = Number(item.giftUserCount || 0)
+  const guildName = String(item.guildName || '').trim()
   const subtitleParts = [
     item.roomId ? `房间号：${item.roomId}` : anchorId ? `主播ID：${anchorId}` : '',
-    item.guildName ? `公会：${item.guildName}` : '',
     giftUsers ? `送礼人数：${giftUsers}` : '',
   ].filter(Boolean)
 
@@ -66,6 +66,8 @@ function toRecord(item: AnchorGiftRankingRecord, index: number): EphoneRankRecor
     roomId: String(item.roomId || anchorId || '').trim(),
     avatar: String(item.avatar || '').trim(),
     value: srValue > 0 && srValue < 1 ? 1 : Math.round(srValue),
+    // 仅保留有意义的中文公会名，过滤 UUID 等纯标识符
+    guild: /^[\w-]+$/.test(guildName) ? '' : guildName,
 
     subtitle: subtitleParts[0] || '主播礼物数据',
   }

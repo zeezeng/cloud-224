@@ -22,6 +22,36 @@ app = Flask(__name__)
 
 BASE_URL = "https://www.doseeing.com"
 
+# hours 参数 -> 在看斗鱼 rank 接口的 dt 参数（dt=0 今日、dt=1 昨日、dt=thismonth 本月）
+HOURS_TO_DT = {"today": "0", "yesterday": "1", "thismonth": "thismonth"}
+
+
+def fetch_online_minutes(room, dt, cookie):
+    """抓取在看斗鱼 rank 接口的 online.minutes（周期内真实开播分钟数）；失败返回 None。
+
+    room_stat 接口 meta 的昨日数据返回整个周期的分钟数（1440），并非真实开播时长，
+    故以 rank 接口的 online.minutes 为准修正 meta。rank 接口需登录 Cookie。
+    """
+    url = "%s/data/api/rank?rids=%s&dt=%s&rank_type=chat_pv" % (BASE_URL, room, dt)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Referer": "%s/data/room/%s?type=gift&dt=%s" % (BASE_URL, room, dt),
+    }
+    if cookie:
+        headers["Cookie"] = cookie
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8", "ignore"))
+        rows = (data.get("result") or {}).get("result") or []
+        if not rows:
+            return None
+        minutes = rows[0].get("online.minutes")
+        return int(minutes) if minutes is not None else None
+    except Exception:
+        return None
+
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -43,6 +73,17 @@ def probe(path):
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=20) as resp:
             body = resp.read().decode("utf-8", "ignore")
+            # 用 rank 接口的真实开播时长修正 room_stat 的 meta（昨日 count=1440 不可靠）
+            try:
+                data = json.loads(body)
+                dt = HOURS_TO_DT.get(hours)
+                if dt is not None:
+                    online_minutes = fetch_online_minutes(room, dt, cookie)
+                    if online_minutes is not None:
+                        data["meta"] = {"count": online_minutes, "unit": "minute"}
+                        body = json.dumps(data, ensure_ascii=False)
+            except Exception:
+                pass  # 解析或修正失败时保留原始 body
             return jsonify({
                 "http_status": resp.status,
                 "room": room,

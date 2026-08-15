@@ -51,6 +51,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     private static final String BATCH_ABORT_MESSAGE = "首个失败已中止后续批量同步";
 
     private static final String DATA_SOURCE_DOSEEING = "DOSEEING";
+    private static final String DATA_SOURCE_MANUAL = "MANUAL";
 
     // ========== 风控防护：按需缓存 + 随机间隔 ==========
     /** AUTO 自动同步的远程拉取缓存有效期(ms)：有效期内不再重复请求远程接口 */
@@ -157,14 +158,31 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
             result.setTotalCount(progress.getTotalCount());
             try {
                 for (YunAnchor anchor : anchors) {
+                    progress.setCurrentAnchorId(anchor.getAnchorId());
+                    if (isManualSource(anchor.getDataSource())) {
+                        for (SyncPeriod period : periods) {
+                            progress.setCurrentPeriodKey(period.periodKey());
+                            progress.setCompletedCount(progress.getCompletedCount() + 1);
+                        }
+                        String skipMsg = "主播[" + anchor.getAnchorId() + "]为手动维护，未设置数据源，已跳过";
+                        if (result.getErrors().size() < 20) {
+                            result.getErrors().add(skipMsg);
+                        }
+                        result.setFailCount(result.getFailCount() + periods.size());
+                        progress.setSuccessCount(result.getSuccessCount());
+                        progress.setFailCount(result.getFailCount());
+                        progress.setErrors(new ArrayList<>(result.getErrors()));
+                        continue;
+                    }
+                    boolean anchorFailed = false;
                     for (SyncPeriod period : periods) {
-                        progress.setCurrentAnchorId(anchor.getAnchorId());
                         progress.setCurrentPeriodKey(period.periodKey());
                         boolean success = syncOne(anchor, period, dataSource, triggerType, result);
                         progress.setSuccessCount(result.getSuccessCount());
                         progress.setFailCount(result.getFailCount());
                         progress.setCompletedCount(progress.getCompletedCount() + 1);
                         if (!success) {
+                            anchorFailed = true;
                             appendBatchAbortMessage(result);
                         }
                         progress.setErrors(new ArrayList<>(result.getErrors()));
@@ -172,7 +190,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
                             break;
                         }
                     }
-                    if (result.getFailCount() > 0) {
+                    if (anchorFailed) {
                         break;
                     }
                 }
@@ -206,6 +224,10 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         result.setTotalCount(anchors.size() * periods.size());
 
         for (YunAnchor anchor : anchors) {
+            if (isManualSource(anchor.getDataSource())) {
+                skipManualAnchor(anchor, periods, result);
+                continue;
+            }
             for (SyncPeriod period : periods) {
                 boolean success = syncOne(anchor, period, requestedDataSource, triggerType, result);
                 if (stopOnFirstFailure && !success) {
@@ -220,6 +242,24 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         result.setEndedAt(LocalDateTime.now());
         saveLog(result, periods, triggerType);
         return result;
+    }
+
+    /**
+     * 主播数据源是否为"手动维护"（无平台/无自动拉数来源）。
+     */
+    private boolean isManualSource(String source) {
+        return !StringUtils.hasText(source) || DATA_SOURCE_MANUAL.equalsIgnoreCase(source);
+    }
+
+    /**
+     * 跳过手动维护主播：不计成功也不真正拉数，提示先为主播设置平台/数据源。
+     */
+    private void skipManualAnchor(YunAnchor anchor, List<SyncPeriod> periods, YunSyncResult result) {
+        String skipMsg = "主播[" + anchor.getAnchorId() + "]为手动维护，未设置数据源，已跳过";
+        if (result.getErrors().size() < 20) {
+            result.getErrors().add(skipMsg);
+        }
+        result.setFailCount(result.getFailCount() + periods.size());
     }
 
     private boolean syncOne(YunAnchor anchor, SyncPeriod period, String requestedDataSource, String triggerType,
@@ -382,9 +422,10 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     }
 
     private AnchorDataClient resolveClient(String requestedDataSource, String anchorDataSource) {
-        String source = normalizeSource(requestedDataSource);
+        // 优先使用主播自身数据源（区分斗鱼/虎牙），仅当主播无数据源(如手动新增)时回退到工具栏所选平台
+        String source = normalizeSource(anchorDataSource);
         if (!StringUtils.hasText(source)) {
-            source = normalizeSource(anchorDataSource);
+            source = normalizeSource(requestedDataSource);
         }
         if (!StringUtils.hasText(source)) {
             source = DATA_SOURCE_DOSEEING;
@@ -393,7 +434,7 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
                 .collect(Collectors.toMap(client -> normalizeSource(client.sourceCode()), client -> client, (a, b) -> a));
         AnchorDataClient client = clientMap.get(source);
         if (client == null) {
-            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_DOSEEING);
+            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_DOSEEING + "、DOSEEING_HUYA");
         }
         return client;
     }

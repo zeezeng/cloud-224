@@ -34,7 +34,6 @@ function handleView() {
         class="vault-card-avatar"
         :src="record.avatar"
         :name="record.name"
-        :crown="rank === 1"
         :show-pulse="false"
         ring-color="rgba(233, 138, 182, 0.88)"
         size="lg"

@@ -2,11 +2,12 @@ import { request } from '@/utils/request'
 
 export type AnchorStatus = 0 | 1
 export type AnchorFlag = 0 | 1
-export type AnchorDataSource = 'MANUAL' | 'DOSEEING' | string
+export type AnchorDataSource = 'MANUAL' | 'DOSEEING' | 'DOSEEING_HUYA' | string
 
 export interface YunAnchor {
   id?: number
   anchorId?: string
+  platform?: string
   roomId?: string
   anchorName?: string
   avatarUrl?: string
@@ -78,6 +79,14 @@ export interface YunSyncProgress {
   errors?: string[]
   startedAt?: string
   endedAt?: string
+}
+
+export type YunCookieStatusValue = 'NOT_CONFIGURED' | 'OK' | 'EXPIRED' | 'ERROR'
+
+export interface YunCookieStatus {
+  configured: boolean
+  status: YunCookieStatusValue
+  message: string
 }
 
 export interface YunAnchorBatchCreateResult {
@@ -155,5 +164,9 @@ export const anchorApi = {
 
   syncAllProgress(taskId: string) {
     return request<YunSyncProgress>({ url: '/yun/anchor/sync-all/progress', method: 'get', params: { taskId } })
+  },
+
+  cookieStatus() {
+    return request<YunCookieStatus>({ url: '/yun/anchor/cookie-status', method: 'get' })
   }
 }

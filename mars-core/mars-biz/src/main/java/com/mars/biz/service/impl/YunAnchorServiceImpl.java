@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mars.biz.dto.BojiangAnchorInfo;
 import com.mars.biz.dto.YunAnchorBatchCreateResult;
 import com.mars.biz.dto.YunAnchorPageRow;
+import com.mars.biz.dto.YunCookieStatus;
 import com.mars.biz.dto.YunSyncProgress;
 import com.mars.biz.dto.YunSyncResult;
 import com.mars.biz.entity.YunAnchor;
@@ -13,6 +14,7 @@ import com.mars.biz.entity.YunAnchorGiftStat;
 import com.mars.biz.mapper.YunAnchorGiftStatMapper;
 import com.mars.biz.mapper.YunAnchorMapper;
 import com.mars.biz.service.AnchorDataClient;
+import com.mars.biz.service.DoseeingClient;
 import com.mars.biz.service.YunAnchorGiftSyncService;
 import com.mars.biz.service.YunAnchorService;
 import com.mars.common.exception.BusinessException;
@@ -48,6 +50,9 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
     private static final int AUTO_UPDATE_PROFILE_ENABLED = 1;
     private static final String DATA_SOURCE_MANUAL = "MANUAL";
     private static final String DATA_SOURCE_DOSEEING = "DOSEEING";
+    private static final String DATA_SOURCE_DOSEEING_HUYA = "DOSEEING_HUYA";
+    private static final String PLATFORM_DOUYU = "DOUYU";
+    private static final String PLATFORM_HUYA = "HUYA";
     private static final String PERIOD_TYPE_DAY = "DAY";
     private static final String PERIOD_TYPE_MONTH = "MONTH";
     private static final int MAX_BATCH_CREATE_SIZE = 100;
@@ -55,6 +60,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
     private final List<AnchorDataClient> anchorDataClients;
     private final YunAnchorGiftSyncService syncService;
     private final YunAnchorGiftStatMapper giftStatMapper;
+    private final DoseeingClient doseeingClient;
 
     @Override
     public Page<YunAnchorPageRow> page(Integer page, Integer pageSize, String anchorId, String anchorName,
@@ -134,6 +140,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
         anchor.setShowRank(SHOW_RANK_ENABLED);
         anchor.setSort(0);
         anchor.setDataSource(client.sourceCode());
+        anchor.setPlatform(platformOf(client));
         anchor.setAutoUpdateProfile(AUTO_UPDATE_PROFILE_ENABLED);
         return anchor;
     }
@@ -159,8 +166,8 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
 
         for (String anchorId : normalizedAnchorIds) {
             try {
-                if (existsByAnchorId(anchorId)) {
-                    result.getErrors().add(anchorId + "：主播ID已存在");
+                if (existsByAnchorId(anchorId, platformOf(client))) {
+                    result.getErrors().add(anchorId + "：" + platformOf(client) + "平台主播ID已存在");
                     continue;
                 }
                 YunAnchor anchor = previewAnchor(anchorId, client);
@@ -251,6 +258,11 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
         return syncService.getSyncAllProgress(taskId);
     }
 
+    @Override
+    public YunCookieStatus checkCookieStatus() {
+        return doseeingClient.checkCookieStatus();
+    }
+
     private Map<String, YunAnchorGiftStat> statMap(List<String> anchorIds, String periodType, String periodKey) {
         if (anchorIds == null || anchorIds.isEmpty()) {
             return Collections.emptyMap();
@@ -282,9 +294,10 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
         return new ArrayList<>(normalized);
     }
 
-    private boolean existsByAnchorId(String anchorId) {
+    private boolean existsByAnchorId(String anchorId, String platform) {
         LambdaQueryWrapper<YunAnchor> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(YunAnchor::getAnchorId, anchorId);
+        wrapper.eq(YunAnchor::getPlatform, platform)
+                .eq(YunAnchor::getAnchorId, anchorId);
         return this.count(wrapper) > 0;
     }
 
@@ -317,14 +330,18 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
         if (!StringUtils.hasText(anchor.getDataSource())) {
             anchor.setDataSource(DATA_SOURCE_MANUAL);
         }
+        if (!StringUtils.hasText(anchor.getPlatform())) {
+            anchor.setPlatform(platformOf(anchor.getDataSource()));
+        }
 
         LambdaQueryWrapper<YunAnchor> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(YunAnchor::getAnchorId, anchor.getAnchorId());
+        wrapper.eq(YunAnchor::getPlatform, anchor.getPlatform())
+                .eq(YunAnchor::getAnchorId, anchor.getAnchorId());
         if (!create) {
             wrapper.ne(YunAnchor::getId, anchor.getId());
         }
         if (this.count(wrapper) > 0) {
-            throw new BusinessException("主播ID已存在");
+            throw new BusinessException("该平台主播ID已存在");
         }
     }
 
@@ -338,7 +355,22 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
         anchor.setGuildName(trim(anchor.getGuildName(), 100));
         anchor.setBio(trim(anchor.getBio(), 1000));
         anchor.setDataSource(trim(anchor.getDataSource(), 32));
+        anchor.setPlatform(trim(anchor.getPlatform(), 16));
         anchor.setRemark(trim(anchor.getRemark(), 500));
+    }
+
+    /**
+     * 根据数据源推导平台：虎牙数据源返回 HUYA，其余返回 DOUYU。
+     */
+    private String platformOf(String dataSource) {
+        return DATA_SOURCE_DOSEEING_HUYA.equals(dataSource) ? PLATFORM_HUYA : PLATFORM_DOUYU;
+    }
+
+    /**
+     * 根据数据源客户端推导平台。
+     */
+    private String platformOf(AnchorDataClient client) {
+        return platformOf(client == null ? null : client.sourceCode());
     }
 
     private String trim(String value, int maxLength) {
@@ -358,7 +390,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
                 .collect(Collectors.toMap(client -> normalizeSource(client.sourceCode()), client -> client, (a, b) -> a));
         AnchorDataClient client = clientMap.get(source);
         if (client == null) {
-            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_DOSEEING);
+            throw new BusinessException("不支持的数据源: " + source + "，可选 " + DATA_SOURCE_DOSEEING + "、" + DATA_SOURCE_DOSEEING_HUYA);
         }
         return client;
     }
@@ -378,6 +410,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
         anchor.setShowRank(SHOW_RANK_ENABLED);
         anchor.setSort(0);
         anchor.setDataSource(client.sourceCode());
+        anchor.setPlatform(platformOf(client));
         anchor.setAutoUpdateProfile(AUTO_UPDATE_PROFILE_ENABLED);
         return anchor;
     }

@@ -69,20 +69,6 @@
               <template #icon><n-icon><TrashOutline /></n-icon></template>
               删除{{ selectedIds.length > 0 ? `(${selectedIds.length})` : '' }}
             </n-button>
-            <div
-              v-if="hasPermission('yun:anchor:sync') || hasPermission('yun:anchor:add')"
-              class="sync-platform-meta"
-            >
-              <span class="sync-platform-meta-label">当前同步来源</span>
-              <template v-if="syncSourceOptions.length > 1">
-                <n-select
-                  v-model:value="toolbarSyncDataSource"
-                  :options="syncSourceOptions"
-                  class="sync-platform-meta-select"
-                />
-              </template>
-              <span v-else class="sync-platform-meta-value">{{ dataSourceLabel(toolbarSyncDataSource) }}</span>
-            </div>
             <n-tooltip>
               <template #trigger>
                 <n-button quaternary circle @click="handleOpenCookieConfig">
@@ -103,7 +89,7 @@
         :pagination="pagination"
         remote
         :row-key="row => row.id"
-        :scroll-x="2200"
+        :scroll-x="tableScrollX"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
         @update:checked-row-keys="handleCheck"
@@ -113,14 +99,22 @@
     <n-modal v-model:show="modalVisible" preset="card" :title="modalTitle" style="width: 900px">
       <n-form ref="formRef" :model="formData" :rules="formRules" label-placement="left" label-width="116px">
         <n-alert v-if="!formData.id" type="info" :bordered="false" class="fetch-tip">
-          输入主播ID后点击「自动获取」可按工具栏所选同步平台获取主播资料；也可以只填必填项后手动保存。
+          选择平台后输入主播ID，点击「自动获取」可按所选平台（斗鱼/虎牙）获取主播资料；也可以只填必填项后手动保存。
         </n-alert>
         <n-grid :cols="2" :x-gap="24">
+          <n-form-item-gi label="平台" path="platform">
+            <n-select
+              v-model:value="formData.platform"
+              :options="platformOptions"
+              :disabled="!!formData.id"
+              placeholder="请选择平台"
+            />
+          </n-form-item-gi>
           <n-form-item-gi label="主播ID" path="anchorId">
             <n-input-group>
               <n-input
                 v-model:value="formData.anchorId"
-                placeholder="必填，唯一；当前等同斗鱼房间号 rid"
+                placeholder="必填，唯一；斗鱼填房间号 rid，虎牙填虎牙房间号"
                 :disabled="!!formData.id"
               />
               <n-button
@@ -229,12 +223,12 @@
       :closable="!batchSubmitLoading"
     >
       <n-alert type="info" :bordered="false" class="batch-tip">
-        每行输入一个主播ID，提交后会按工具栏所选同步平台自动获取主播资料；系统会并发处理并显示实时进度。
+        每行输入一个主播ID。可加前缀指定平台：dy: 表示斗鱼、hy: 表示虎牙（如 dy:182102、hy:156324）；不带前缀则按工具栏所选同步平台处理。系统会并发处理并显示实时进度。
       </n-alert>
       <n-input
         v-model:value="batchAnchorText"
         type="textarea"
-        placeholder="182102&#10;999999&#10;..."
+        placeholder="182102&#10;hy:156324&#10;dy:999999&#10;..."
         :autosize="{ minRows: 8, maxRows: 14 }"
         :disabled="batchSubmitLoading"
       />
@@ -387,7 +381,7 @@ import {
   SettingsOutline,
   TrashOutline
 } from '@vicons/ionicons5'
-import { anchorApi, type AnchorDataSource, type AnchorFlag, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunSyncProgress, type YunSyncResult } from '@/api/anchor'
+import { anchorApi, type AnchorDataSource, type AnchorFlag, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunCookieStatus, type YunSyncProgress, type YunSyncResult } from '@/api/anchor'
 import { configGroupApi } from '@/api/org'
 import { useUserStore } from '@/stores/user'
 
@@ -402,13 +396,15 @@ const statusOptions: Array<{ label: string; value: AnchorStatus }> = [
   { label: '禁用', value: 0 }
 ]
 
-const dataSourceOptions: Array<{ label: string; value: AnchorDataSource }> = [
-  { label: '手动维护', value: 'MANUAL' },
-  { label: '在看', value: 'DOSEEING' }
+const platformOptions: Array<{ label: string; value: string }> = [
+  { label: '斗鱼', value: 'DOUYU' },
+  { label: '虎牙', value: 'HUYA' }
 ]
 
-const syncSourceOptions: Array<{ label: string; value: string }> = [
-  { label: '在看', value: 'DOSEEING' }
+const dataSourceOptions: Array<{ label: string; value: AnchorDataSource }> = [
+  { label: '手动维护', value: 'MANUAL' },
+  { label: '在看(斗鱼)', value: 'DOSEEING' },
+  { label: '在看(虎牙)', value: 'DOSEEING_HUYA' }
 ]
 
 const searchForm = reactive<{
@@ -488,7 +484,7 @@ const cookieModalVisible = ref(false)
 const cookieValue = ref('')
 const proxyValue = ref('')
 const cookieSaving = ref(false)
-const toolbarSyncDataSource = ref<AnchorDataSource>('DOSEEING')
+const cookiePromptShown = ref(false)
 const batchProcessingIds = ref<string[]>([])
 const formRef = ref<FormInst | null>(null)
 const defaultFormData: YunAnchor = {
@@ -506,6 +502,7 @@ const defaultFormData: YunAnchor = {
   showRank: 1,
   sort: 0,
   dataSource: 'DOSEEING',
+  platform: 'DOUYU',
   autoUpdateProfile: 1,
   remark: ''
 }
@@ -524,6 +521,7 @@ const batchProgress = reactive({
 })
 const statusUpdatingIds = ref<number[]>([])
 const showRankUpdatingIds = ref<number[]>([])
+const tableScrollX = 2532
 
 const batchProgressPercentage = computed(() => {
   if (batchProgress.total <= 0) {
@@ -549,7 +547,16 @@ function refreshAnchorRows() {
 }
 
 const columns: DataTableColumns<YunAnchorPageRow> = [
-  { type: 'selection' },
+  { type: 'selection', width: 48 },
+  {
+    title: '平台',
+    key: 'platform',
+    width: 72,
+    render(row) {
+      const isHuya = row.platform === 'HUYA'
+      return h(NTag, { type: isHuya ? 'warning' : 'info', size: 'small' }, { default: () => isHuya ? '虎牙' : '斗鱼' })
+    }
+  },
   {
     title: '主播',
     key: 'anchorName',
@@ -753,6 +760,7 @@ function resetForm() {
 function handleAdd() {
   modalTitle.value = '新增主播'
   resetForm()
+  formData.platform = 'DOUYU'
   modalVisible.value = true
 }
 
@@ -828,17 +836,19 @@ async function handleFetchPreview() {
   }
   previewLoading.value = true
   try {
-    const preview = await anchorApi.fetchPreview(anchorId, toolbarSyncDataSource.value || 'DOSEEING')
+    const previewSource = formData.platform === 'HUYA' ? 'DOSEEING_HUYA' : 'DOSEEING'
+    const preview = await anchorApi.fetchPreview(anchorId, previewSource)
     Object.assign(formData, {
       ...formData,
       ...preview,
       anchorId,
+      platform: formData.platform || (previewSource === 'DOSEEING_HUYA' ? 'HUYA' : 'DOUYU'),
       status: formData.status ?? 1,
       showRank: formData.showRank ?? 1,
       sort: formData.sort ?? 0,
       autoUpdateProfile: formData.autoUpdateProfile ?? 1,
     })
-    message.success(`已获取${dataSourceLabel(toolbarSyncDataSource.value || 'DOSEEING')}资料`)
+    message.success(`已获取${dataSourceLabel(previewSource)}资料`)
 
   } finally {
     previewLoading.value = false
@@ -853,8 +863,9 @@ async function handleSubmit() {
       ...formData,
       anchorId: formData.anchorId?.trim(),
       roomId: formData.roomId?.trim() || formData.anchorId?.trim(),
-      dataSource: toolbarSyncDataSource.value || 'DOSEEING',
     }
+    submitData.platform = formData.platform === 'HUYA' ? 'HUYA' : 'DOUYU'
+    submitData.dataSource = submitData.platform === 'HUYA' ? 'DOSEEING_HUYA' : 'DOSEEING'
     if (submitData.id) {
       await anchorApi.update(submitData)
       message.success('修改成功')
@@ -869,13 +880,37 @@ async function handleSubmit() {
   }
 }
 
-function parseBatchAnchorIds() {
-  return Array.from(new Set(
-    batchAnchorText.value
-      .split(/\r?\n/)
-      .map(item => item.trim())
-      .filter(Boolean)
-  ))
+interface BatchAnchorInput {
+  anchorId: string
+  dataSource: AnchorDataSource
+}
+
+function parseBatchAnchorIds(): BatchAnchorInput[] {
+  const map = new Map<string, AnchorDataSource>()
+  const fallback: AnchorDataSource = 'DOSEEING'
+  for (const line of batchAnchorText.value.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      continue
+    }
+    let anchorId = trimmed
+    let dataSource: AnchorDataSource = fallback
+    const lower = trimmed.toLowerCase()
+    if (lower.startsWith('dy:')) {
+      dataSource = 'DOSEEING'
+      anchorId = trimmed.slice(3).trim()
+    } else if (lower.startsWith('hy:')) {
+      dataSource = 'DOSEEING_HUYA'
+      anchorId = trimmed.slice(3).trim()
+    }
+    if (!anchorId) {
+      continue
+    }
+    if (!map.has(anchorId)) {
+      map.set(anchorId, dataSource)
+    }
+  }
+  return Array.from(map.entries()).map(([anchorId, dataSource]) => ({ anchorId, dataSource }))
 }
 
 function resetBatchProgress(total = 0) {
@@ -893,33 +928,36 @@ function pushBatchError(anchorId: string, error: unknown) {
 }
 
 async function handleBatchSubmit() {
-  const anchorIds = parseBatchAnchorIds()
-  if (anchorIds.length === 0) {
+  const inputs = parseBatchAnchorIds()
+  if (inputs.length === 0) {
     message.warning('请输入主播ID')
     return
   }
-  resetBatchProgress(anchorIds.length)
+  if (!(await ensureCookieValid())) {
+    return
+  }
+  resetBatchProgress(inputs.length)
   batchSubmitLoading.value = true
   try {
     let nextIndex = 0
-    const workerCount = Math.min(BATCH_CREATE_CONCURRENCY, anchorIds.length)
+    const workerCount = Math.min(BATCH_CREATE_CONCURRENCY, inputs.length)
     const runWorker = async () => {
-      while (nextIndex < anchorIds.length) {
-        const anchorId = anchorIds[nextIndex]
+      while (nextIndex < inputs.length) {
+        const input = inputs[nextIndex]
         nextIndex += 1
-        batchProcessingIds.value = [...batchProcessingIds.value, anchorId]
+        batchProcessingIds.value = [...batchProcessingIds.value, input.anchorId]
         try {
-          const result = await anchorApi.batchCreate([anchorId], toolbarSyncDataSource.value || 'DOSEEING')
+          const result = await anchorApi.batchCreate([input.anchorId], input.dataSource)
 
           batchProgress.success += result.successCount || 0
           batchProgress.fail += result.failCount || 0
           batchProgress.errors.push(...(result.errors || []))
         } catch (error) {
           batchProgress.fail += 1
-          pushBatchError(anchorId, error)
+          pushBatchError(input.anchorId, error)
         } finally {
           batchProgress.completed += 1
-          batchProcessingIds.value = batchProcessingIds.value.filter(id => id !== anchorId)
+          batchProcessingIds.value = batchProcessingIds.value.filter(id => id !== input.anchorId)
         }
       }
     }
@@ -978,9 +1016,19 @@ async function handleSync(row: YunAnchorPageRow) {
   if (syncingRowIds.value.includes(row.id!)) {
     return
   }
+  if (!(await ensureCookieValid())) {
+    return
+  }
+  const rowSource = row.dataSource && row.dataSource !== 'MANUAL'
+    ? row.dataSource
+    : null
+  if (!rowSource) {
+    message.warning('该主播为手动维护，未设置数据源，请先编辑设置平台/数据源')
+    return
+  }
   syncingRowIds.value = [...syncingRowIds.value, row.id!]
   try {
-    const result = await anchorApi.sync(row.id!, toolbarSyncDataSource.value || 'DOSEEING')
+    const result = await anchorApi.sync(row.id!, rowSource)
     renderSyncMessage(result)
     await loadData()
   } catch (error) {
@@ -996,7 +1044,7 @@ function handleSyncAll() {
   }
   dialog.warning({
     title: '同步全部主播',
-    content: `将按当前同步平台（${dataSourceLabel(toolbarSyncDataSource.value)}）同步所有启用主播的今日、昨日和本月礼物数据，确认继续吗？`,
+    content: '将同步所有启用主播的今日、昨日和本月礼物数据（主播按各自绑定的数据源同步；手动维护（未设置平台/数据源）的主播将被跳过）。确认继续吗？',
     positiveText: '开始同步',
     negativeText: '取消',
     onPositiveClick: () => {
@@ -1006,6 +1054,9 @@ function handleSyncAll() {
 }
 
 async function startSyncAll() {
+  if (!(await ensureCookieValid())) {
+    return
+  }
   syncAllModalVisible.value = true
   syncAllLoading.value = true
   syncAllTask.running = true
@@ -1015,7 +1066,7 @@ async function startSyncAll() {
   syncAllTask.currentAnchorId = ''
   syncAllTask.errors = []
   try {
-    const progress: YunSyncProgress = await anchorApi.syncAll(toolbarSyncDataSource.value || 'DOSEEING')
+    const progress: YunSyncProgress = await anchorApi.syncAll('DOSEEING')
     applySyncAllProgress(progress)
     startSyncPolling()
   } catch (error) {
@@ -1102,6 +1153,66 @@ async function handleSaveCookie() {
   }
 }
 
+/**
+ * 页面加载时检查一次：未配置 Cookie 时提示，引导用户去配置。
+ */
+async function checkCookieStatusOnce() {
+  if (cookiePromptShown.value) {
+    return
+  }
+  let status: YunCookieStatus | null = null
+  try {
+    status = await anchorApi.cookieStatus()
+  } catch {
+    return
+  }
+  if (status?.status === 'NOT_CONFIGURED') {
+    cookiePromptShown.value = true
+    dialog.warning({
+      title: '在看Cookie未配置',
+      content: '当前未配置在看会员Cookie。未配置时本月数据、公会信息、开播时长等部分数据可能缺失。建议在右上角设置中配置在看Cookie后再同步。',
+      positiveText: '去配置',
+      negativeText: '知道了',
+      onPositiveClick: () => {
+        void handleOpenCookieConfig()
+      },
+    })
+  }
+}
+
+/**
+ * 同步前校验 Cookie：未配置或已失效时弹窗提示，返回是否继续同步。
+ */
+async function ensureCookieValid(): Promise<boolean> {
+  let status: YunCookieStatus | null = null
+  try {
+    status = await anchorApi.cookieStatus()
+  } catch {
+    return true
+  }
+  if (status?.status === 'OK') {
+    return true
+  }
+  const notConfigured = status?.status === 'NOT_CONFIGURED'
+  const title = notConfigured ? '在看Cookie未配置' : '在看Cookie已失效'
+  return new Promise<boolean>((resolve) => {
+    dialog.warning({
+      title,
+      content: `${status?.message || ''} 建议重新配置后再同步，否则本月数据、公会信息、开播时长等可能不完整。`,
+      positiveText: '去配置',
+      negativeText: '仍继续',
+      onPositiveClick: () => {
+        void handleOpenCookieConfig()
+        resolve(false)
+      },
+      onNegativeClick: () => resolve(true),
+      onClose: () => resolve(false),
+      onMaskClick: () => resolve(false),
+      onEsc: () => resolve(false),
+    })
+  })
+}
+
 function handleDelete(row: YunAnchorPageRow) {
   dialog.warning({
     title: '提示',
@@ -1131,7 +1242,10 @@ function handleBatchDelete() {
   })
 }
 
-onMounted(loadData)
+onMounted(() => {
+  void loadData()
+  void checkCookieStatusOnce()
+})
 onUnmounted(() => {
   stopSyncPolling()
 })
@@ -1161,62 +1275,6 @@ onUnmounted(() => {
 .table-toolbar-primary {
   align-items: center;
   flex-wrap: wrap;
-}
-
-.sync-platform-meta {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 8px;
-  min-height: 32px;
-  white-space: nowrap;
-}
-
-.sync-platform-meta-label {
-  color: #98a2b3;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.sync-platform-meta-value {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: #f3f6fb;
-  color: #344256;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  box-shadow: inset 0 0 0 1px #e1e8f0;
-}
-
-.sync-platform-meta-select {
-  width: 148px;
-}
-
-.sync-platform-meta-select :deep(.n-base-selection) {
-  min-height: 32px;
-  border: 1px solid #e1e8f0;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: none;
-}
-
-.sync-platform-meta-select :deep(.n-base-selection-label) {
-  font-size: 13px;
-  font-weight: 600;
-  color: #344256;
-}
-
-.sync-platform-meta-select :deep(.n-base-selection-placeholder) {
-  color: #98a2b3;
-}
-
-.sync-platform-meta-select :deep(.n-base-selection-arrow) {
-  color: #b4bdc9;
 }
 
 .sync-all-modal-body {

@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mars.biz.dto.YunAnchorBatchCreateRequest;
 import com.mars.biz.dto.YunAnchorBatchCreateResult;
 import com.mars.biz.dto.YunAnchorPageRow;
+import com.mars.biz.dto.YunCookieStatus;
 import com.mars.biz.dto.YunSyncProgress;
 import com.mars.biz.dto.YunSyncResult;
 import com.mars.biz.entity.YunAnchor;
@@ -121,5 +122,11 @@ public class YunAnchorController {
     @SaCheckPermission("yun:anchor:sync")
     public Result<YunSyncProgress> syncAllProgress(@RequestParam String taskId) {
         return Result.ok(yunAnchorService.getSyncAllProgress(taskId));
+    }
+
+    @GetMapping("/cookie-status")
+    @SaCheckPermission("yun:anchor:sync")
+    public Result<YunCookieStatus> cookieStatus() {
+        return Result.ok(yunAnchorService.checkCookieStatus());
     }
 }

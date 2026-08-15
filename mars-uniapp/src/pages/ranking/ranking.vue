@@ -24,8 +24,8 @@ definePage({
   },
 })
 
-const periodTabs = ['今日', '昨日', '本月']
-const periodValues: RankingPeriod[] = ['today', 'yesterday', 'month']
+const periodTabs = ['今日', '昨日']
+const periodValues: RankingPeriod[] = ['today', 'yesterday']
 
 const activePeriodIndex = ref(0)
 const records = ref<EphoneRankRecord[]>([])
@@ -233,12 +233,13 @@ onLoad(() => {
             @retry="loadMoreError ? loadRanking() : loadRanking({ reset: true })"
             @load-more="handleLoadMore"
           >
-            <PodiumBoard :records="podiumRecords" />
+            <PodiumBoard :records="podiumRecords" show-guild />
             <RankingList
               v-if="listRecords.length"
               :records="listRecords"
               value-label="SR值"
               :start-rank="4"
+              show-guild
             />
           </YunListStatus>
         </view>
@@ -310,6 +311,6 @@ onLoad(() => {
 }
 
 .ranking-content {
-  padding: 0 0 24rpx;
+  padding: 0 0 200rpx;
 }
 </style>

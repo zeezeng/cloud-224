@@ -104,12 +104,23 @@ public class YunRankingServiceImpl implements YunRankingService {
         record.setRoomId(StringUtils.hasText(anchor.getRoomId()) ? anchor.getRoomId() : anchor.getAnchorId());
         record.setName(StringUtils.hasText(anchor.getAnchorName()) ? anchor.getAnchorName() : anchor.getAnchorId());
         record.setAvatar(anchor.getAvatarUrl());
-        record.setGuildName(anchor.getGuildName());
+        record.setGuildName(isValidGuildName(anchor.getGuildName()) ? anchor.getGuildName() : null);
         record.setGiftTotalValue(stat.getGiftTotalValue() == null ? BigDecimal.ZERO : stat.getGiftTotalValue());
         record.setPaidGiftValue(stat.getPaidGiftValue() == null ? BigDecimal.ZERO : stat.getPaidGiftValue());
         record.setGiftUserCount(stat.getGiftUserCount());
         record.setSyncedAt(stat.getSyncedAt());
         return record;
+    }
+
+    /**
+     * 判断公会名是否为有意义的中文名称，排除 UUID 或纯标识符类字符串。
+     */
+    private static boolean isValidGuildName(String guildName) {
+        if (!StringUtils.hasText(guildName)) {
+            return false;
+        }
+        // 排除纯字母/数字/连字符/下划线组成的标识符（如 UUID、短码）
+        return !guildName.trim().matches("^[a-zA-Z0-9\\-_]+$");
     }
 
     private PeriodInfo resolvePeriod(String period) {

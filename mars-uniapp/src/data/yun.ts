@@ -25,6 +25,7 @@ export interface EphoneRankRecord {
   avatar: string
   value: number
   subtitle: string
+  guild?: string
   trend?: 'up' | 'down'
 }
 

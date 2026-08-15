@@ -6,6 +6,7 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.mars.biz.dto.BojiangAnchorInfo;
+import com.mars.biz.dto.YunCookieStatus;
 import com.mars.common.exception.BusinessException;
 import com.mars.system.helper.SystemConfigHelper;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,9 @@ public class DoseeingClient implements AnchorDataClient {
     private static final String BASE_URL = "https://www.doseeing.com";
     private static final String ROOM_STAT_URL = BASE_URL + "/api/room_stat";
     private static final String SUGGEST_URL = BASE_URL + "/api/suggest_all";
+    private static final String RANK_URL = BASE_URL + "/data/api/rank";
+    /** 校验Cookie时探测的固定斗鱼房间号（需为稳定且有数据的房间） */
+    private static final String COOKIE_PROBE_ROOM = "182102";
     private static final String CONFIG_GROUP_YUN = "yunDataSource";
     private static final int TIMEOUT_MS = 10000;
 
@@ -99,6 +103,69 @@ public class DoseeingClient implements AnchorDataClient {
             throw new BusinessException("在看公开接口仅支持同步本月，不支持历史月份");
         }
         return fetchRoomStat(normalizedAnchorId, "thismonth", null, month == null ? currentMonth : month);
+    }
+
+    /**
+     * 校验在看Cookie是否有效。
+     * <p>在看斗鱼 rank 接口（dt=0）在携带有效 Cookie 时返回统计数据，Cookie 缺失/失效时返回
+     * {@code {"status":"fail","result":{}}}，因此以此作为校验点。room_stat 公开接口无需 Cookie，
+     * 无法用于判定登录态。
+     */
+    public YunCookieStatus checkCookieStatus() {
+        YunCookieStatus status = new YunCookieStatus();
+        String cookie = getCookie();
+        if (!StringUtils.hasText(cookie)) {
+            status.setConfigured(false);
+            status.setStatus("NOT_CONFIGURED");
+            status.setMessage("未配置在看Cookie，月数据、公会信息等部分数据可能缺失");
+            return status;
+        }
+        status.setConfigured(true);
+        try {
+            JSONObject json = requestRankForCookieProbe(cookie);
+            boolean success = "success".equals(json.getStr("status"));
+            JSONObject result = json.getJSONObject("result");
+            JSONArray rows = result == null ? null : result.getJSONArray("result");
+            if (success && rows != null && !rows.isEmpty()) {
+                status.setStatus("OK");
+                status.setMessage("Cookie有效");
+            } else {
+                status.setStatus("EXPIRED");
+                status.setMessage("Cookie已失效（登录态过期），请重新登录在看后更新Cookie");
+            }
+        } catch (BusinessException e) {
+            status.setStatus("ERROR");
+            status.setMessage("Cookie校验失败: " + e.getMessage());
+        } catch (Exception e) {
+            status.setStatus("ERROR");
+            status.setMessage("Cookie校验失败: " + e.getMessage());
+        }
+        return status;
+    }
+
+    /**
+     * 请求在看 rank 接口（dt=0）校验 Cookie 有效性。
+     */
+    private JSONObject requestRankForCookieProbe(String cookie) {
+        String url = RANK_URL + "?rids=" + COOKIE_PROBE_ROOM + "&dt=0&rank_type=chat_pv";
+        try (HttpResponse httpResponse = HttpRequest.get(url)
+                .timeout(TIMEOUT_MS)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0")
+                .header("Accept", "application/json, text/javascript, */*; q=0.01")
+                .header("Referer", BASE_URL + "/data/room/" + COOKIE_PROBE_ROOM + "?type=gift&dt=0")
+                .header("Cookie", cookie)
+                .execute()) {
+            checkHttpStatus(httpResponse);
+            String body = httpResponse.body();
+            if (!StringUtils.hasText(body)) {
+                throw new BusinessException("在看Cookie校验接口返回为空");
+            }
+            return JSONUtil.parseObj(body);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException("请求在看Cookie校验接口失败: " + e.getMessage());
+        }
     }
 
     private BojiangAnchorInfo fetchRoomStat(String anchorId, String hours, LocalDate date, YearMonth month) {
@@ -314,7 +381,7 @@ public class DoseeingClient implements AnchorDataClient {
         info.setActiveAudienceCount(room == null ? null : integer(room, "ol"));
         info.setDanmuCount(integer(stat, "chat.pv"));
         info.setDanmuUserCount(integer(stat, "chat.uv"));
-        info.setDurationText(durationText(meta, hours));
+        info.setDurationText(durationText(hours));
         info.setRoomStatus((room == null ? null : integer(room, "ol")) == null ? null : 1);
         info.setLived(true);
         info.setLastStartTime(room == null ? null : timestampText(room.get("ts")));
@@ -368,16 +435,17 @@ public class DoseeingClient implements AnchorDataClient {
         return "https://apic.douyucdn.cn/upload/" + value + "_big.jpg";
     }
 
-    private String durationText(JSONObject meta, String hours) {
-        if (meta == null) {
-            return hours;
+    private String durationText(String hours) {
+        if ("today".equals(hours)) {
+            return "统计周期：今日";
         }
-        String count = text(meta, "count");
-        String unit = text(meta, "unit");
-        if (!StringUtils.hasText(count) || !StringUtils.hasText(unit)) {
-            return hours;
+        if ("yesterday".equals(hours)) {
+            return "统计周期：昨日";
         }
-        return "统计周期：" + count + ("day".equals(unit) ? "天" : "分钟");
+        if ("thismonth".equals(hours)) {
+            return "统计周期：本月";
+        }
+        return hours;
     }
 
     private BigDecimal streamHours(JSONObject meta) {
@@ -392,7 +460,8 @@ public class DoseeingClient implements AnchorDataClient {
         try {
             BigDecimal n = new BigDecimal(count.replace(",", "").trim());
             if ("day".equals(unit)) {
-                return n.multiply(BigDecimal.valueOf(24)).setScale(2, RoundingMode.HALF_UP);
+                // 本月等周期 meta 的 day 表示周期内天数（如本月已过15天），并非真实开播时长，无法可靠换算，返回 null
+                return null;
             }
             if ("minute".equals(unit) || "min".equals(unit)) {
                 return n.divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);

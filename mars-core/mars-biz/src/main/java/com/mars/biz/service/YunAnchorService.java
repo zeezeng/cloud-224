@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.mars.biz.dto.YunAnchorBatchCreateResult;
 import com.mars.biz.dto.YunAnchorPageRow;
+import com.mars.biz.dto.YunCookieStatus;
 import com.mars.biz.dto.YunSyncProgress;
 import com.mars.biz.dto.YunSyncResult;
 import com.mars.biz.entity.YunAnchor;
@@ -47,4 +48,6 @@ public interface YunAnchorService extends IService<YunAnchor> {
     YunSyncProgress startSyncAll(String dataSource);
 
     YunSyncProgress getSyncAllProgress(String taskId);
+
+    YunCookieStatus checkCookieStatus();
 }

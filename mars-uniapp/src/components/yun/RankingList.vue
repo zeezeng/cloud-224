@@ -11,22 +11,28 @@ withDefaults(defineProps<{
   showRank?: boolean
   variant?: 'default' | 'enjoy'
   startRank?: number
+  showGuild?: boolean
 }>(), {
   showTrend: false,
   showRank: true,
   variant: 'default',
   startRank: 1,
+  showGuild: false,
 })
 </script>
 
 <template>
-  <view class="ranking-list" :class="[`ranking-list-${variant}`, { 'ranking-list-no-rank': !showRank }]">
+  <view
+    class="ranking-list"
+    :class="[`ranking-list-${variant}`, { 'ranking-list-no-rank': !showRank }]"
+  >
     <view v-for="(record, index) in records" :key="record.id" class="ranking-row">
       <RankBadge v-if="showRank" :rank="startRank + index" />
       <AnchorAvatar :src="record.avatar" :name="record.name" :show-pulse="false" size="sm" />
       <view class="ranking-main">
-        <view class="ranking-name">
-          {{ record.name }}
+        <view class="ranking-name-line">
+          <text class="ranking-name">{{ record.name }}</text>
+          <text v-if="showGuild && record.guild" class="ranking-guild">· {{ record.guild }}</text>
         </view>
         <view class="ranking-subtitle">
           {{ record.subtitle }}
@@ -44,24 +50,27 @@ withDefaults(defineProps<{
 
 <style scoped lang="scss">
 .ranking-list {
+  width: 100%;
   margin-top: 18rpx;
   overflow: hidden;
   border-radius: 28rpx;
   background: rgba(18, 18, 22, 0.9);
+  box-sizing: border-box;
 }
 
 .ranking-row {
   display: grid;
-  grid-template-columns: 50rpx 70rpx minmax(0, 1fr) 190rpx;
-  gap: 14rpx;
+  grid-template-columns: 46rpx 76rpx minmax(0, 1fr) minmax(0, 156rpx);
+  gap: 12rpx;
   align-items: center;
-  min-height: 98rpx;
-  padding: 14rpx 18rpx;
+  min-height: 112rpx;
+  padding: 22rpx 18rpx;
   border-bottom: 1rpx solid rgba(255, 255, 255, 0.06);
+  box-sizing: border-box;
 }
 
 .ranking-list-no-rank .ranking-row {
-  grid-template-columns: 70rpx minmax(0, 1fr) 190rpx;
+  grid-template-columns: 76rpx minmax(0, 1fr) minmax(0, 156rpx);
 }
 
 .ranking-row:last-child {
@@ -72,11 +81,32 @@ withDefaults(defineProps<{
   min-width: 0;
 }
 
+.ranking-name-line {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .ranking-name {
+  flex-shrink: 1;
+  min-width: 0;
   overflow: hidden;
   color: #fff;
   font-size: 27rpx;
   font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-guild {
+  flex-shrink: 0;
+  margin-left: 6rpx;
+  max-width: 50%;
+  overflow: hidden;
+  color: var(--ephone-primary-soft);
+  font-size: 20rpx;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -114,9 +144,9 @@ withDefaults(defineProps<{
 }
 
 .ranking-list-enjoy .ranking-row {
-  grid-template-columns: 92rpx minmax(0, 1fr) 216rpx;
-  min-height: 134rpx;
-  padding: 20rpx 22rpx;
+  grid-template-columns: 86rpx minmax(0, 1fr) minmax(0, 186rpx);
+  min-height: 126rpx;
+  padding: 18rpx 20rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.08);
   border-radius: 26rpx;
   background: rgba(255, 255, 255, 0.045);
