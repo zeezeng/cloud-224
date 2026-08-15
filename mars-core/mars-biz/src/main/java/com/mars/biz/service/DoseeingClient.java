@@ -144,9 +144,13 @@ public class DoseeingClient implements AnchorDataClient {
     }
 
     /**
-     * 请求在看 rank 接口（dt=0）校验 Cookie 有效性。
+     * 请求在看 rank 接口（dt=0）校验 Cookie 有效性。配置了在看代理时优先走代理，避免本机/服务器 IP 被封。
      */
     private JSONObject requestRankForCookieProbe(String cookie) {
+        String proxyBase = getProxy();
+        if (StringUtils.hasText(proxyBase)) {
+            return requestRankViaProxy(proxyBase, cookie);
+        }
         String url = RANK_URL + "?rids=" + COOKIE_PROBE_ROOM + "&dt=0&rank_type=chat_pv";
         try (HttpResponse httpResponse = HttpRequest.get(url)
                 .timeout(TIMEOUT_MS)
@@ -165,6 +169,35 @@ public class DoseeingClient implements AnchorDataClient {
             throw e;
         } catch (Exception e) {
             throw new BusinessException("请求在看Cookie校验接口失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 通过在看统一代理(fc-probe /probe-cookie)校验 Cookie 有效性。
+     */
+    private JSONObject requestRankViaProxy(String proxyBase, String cookie) {
+        StringBuilder url = new StringBuilder(proxyBase)
+                .append("/probe-cookie?room=").append(COOKIE_PROBE_ROOM);
+        if (StringUtils.hasText(cookie)) {
+            url.append("&cookie=").append(URLEncoder.encode(cookie, StandardCharsets.UTF_8));
+        }
+        try (HttpResponse httpResponse = HttpRequest.get(url.toString())
+                .timeout(TIMEOUT_MS + 15000)
+                .execute()) {
+            String fcBody = httpResponse.body();
+            JSONObject fcJson = JSONUtil.parseObj(fcBody);
+            if (!fcJson.getBool("reachable", false)) {
+                throw new BusinessException("在看Cookie校验代理抓取失败: HTTP " + httpResponse.getStatus() + " " + shortText(fcBody));
+            }
+            String body = fcJson.getStr("body");
+            if (!StringUtils.hasText(body)) {
+                throw new BusinessException("在看Cookie校验代理返回为空");
+            }
+            return JSONUtil.parseObj(body);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException("请求在看Cookie校验代理接口失败: " + e.getMessage());
         }
     }
 

@@ -146,6 +146,47 @@ def probe(path):
         }), 500
 
 
+@app.route('/probe-cookie', methods=['GET'])
+def probe_cookie():
+    """通过在看统一代理探测斗鱼 rank 接口校验 Cookie 是否有效。
+    请求在看斗鱼 rank 接口（rids=182102&dt=0&rank_type=chat_pv），带登录 Cookie，
+    返回 {reachable, http_status, body}，body 为在看原始 JSON。
+    """
+    room = request.args.get('room', '182102')
+    cookie = request.args.get('cookie', '')
+    url = "%s/data/api/rank?rids=%s&dt=0&rank_type=chat_pv" % (BASE_URL, room)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Referer": "%s/data/room/%s?type=gift&dt=0" % (BASE_URL, room),
+    }
+    if cookie:
+        headers["Cookie"] = cookie
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8", "ignore")
+        return jsonify({
+            "http_status": resp.status,
+            "room": room,
+            "reachable": True,
+            "body": body[:20000],
+        })
+    except urllib.error.HTTPError as e:
+        return jsonify({
+            "http_status": e.code,
+            "reason": str(e.reason),
+            "reachable": False,
+            "body": e.read().decode("utf-8", "ignore")[:20000],
+        }), e.code
+    except Exception as e:
+        return jsonify({
+            "error": type(e).__name__,
+            "message": str(e),
+            "reachable": False,
+        }), 500
+
+
 @app.route('/proxy-html', methods=['GET'])
 def proxy_html():
     """代理在看站内页面类请求（如虎牙房间数据页 /huya/data/room/{rid}，用于解析公会等资料）。
