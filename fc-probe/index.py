@@ -57,8 +57,48 @@ def fetch_online_minutes(room, dt, cookie):
 @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def probe(path):
     room = request.args.get('room', '9314167')
-    hours = request.args.get('hours', 'today')
+    platform = request.args.get('platform', 'douyu')
     cookie = request.args.get('cookie', '')
+
+    # 虎牙：请求在看虎牙 rank 接口（dt=0 今日 / 1 昨日 / thismonth 本月），与斗鱼共用同一代理配置
+    if platform == 'huya':
+        dt = request.args.get('dt', '0')
+        url = "%s/huya/data/api/rank?rids=%s&dt=%s&rank_type=chat_pv" % (BASE_URL, room, dt)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Referer": "%s/huya/data/room/%s?type=gift&dt=%s" % (BASE_URL, room, dt),
+        }
+        if cookie:
+            headers["Cookie"] = cookie
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                body = resp.read().decode("utf-8", "ignore")
+            return jsonify({
+                "http_status": resp.status,
+                "room": room,
+                "dt": dt,
+                "platform": "huya",
+                "reachable": True,
+                "body": body[:20000],
+            })
+        except urllib.error.HTTPError as e:
+            return jsonify({
+                "http_status": e.code,
+                "reason": str(e.reason),
+                "reachable": False,
+                "body": e.read().decode("utf-8", "ignore")[:20000],
+            }), e.code
+        except Exception as e:
+            return jsonify({
+                "error": type(e).__name__,
+                "message": str(e),
+                "reachable": False,
+            }), 500
+
+    # 默认斗鱼：请求在看 room_stat 接口
+    hours = request.args.get('hours', 'today')
 
     url = "%s/api/room_stat?room=%s&hours=%s" % (BASE_URL, room, hours)
     headers = {
@@ -89,14 +129,57 @@ def probe(path):
                 "room": room,
                 "hours": hours,
                 "reachable": True,
-                "body": body[:2000],
+                "body": body[:20000],
             })
     except urllib.error.HTTPError as e:
         return jsonify({
             "http_status": e.code,
             "reason": str(e.reason),
             "reachable": False,
-            "body": e.read().decode("utf-8", "ignore")[:2000],
+            "body": e.read().decode("utf-8", "ignore")[:20000],
+        }), e.code
+    except Exception as e:
+        return jsonify({
+            "error": type(e).__name__,
+            "message": str(e),
+            "reachable": False,
+        }), 500
+
+
+@app.route('/proxy-html', methods=['GET'])
+def proxy_html():
+    """代理在看站内页面类请求（如虎牙房间数据页 /huya/data/room/{rid}，用于解析公会等资料）。
+    仅允许白名单路径，带可选登录 Cookie，返回 {reachable, http_status, body}。
+    """
+    path = request.args.get('path', '')
+    referer = request.args.get('referer', '')
+    cookie = request.args.get('cookie', '')
+    if not path.startswith('/huya/data/room/'):
+        return jsonify({"reachable": False, "http_status": 400, "body": "path not allowed"}), 400
+    url = BASE_URL + path
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0",
+        "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+        "Referer": referer or BASE_URL,
+    }
+    if cookie:
+        headers["Cookie"] = cookie
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8", "ignore")
+        return jsonify({
+            "http_status": resp.status,
+            "path": path,
+            "reachable": True,
+            "body": body[:20000],
+        })
+    except urllib.error.HTTPError as e:
+        return jsonify({
+            "http_status": e.code,
+            "reason": str(e.reason),
+            "reachable": False,
+            "body": e.read().decode("utf-8", "ignore")[:20000],
         }), e.code
     except Exception as e:
         return jsonify({

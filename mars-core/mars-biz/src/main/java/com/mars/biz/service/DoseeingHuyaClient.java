@@ -15,6 +15,8 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -121,8 +123,16 @@ public class DoseeingHuyaClient implements AnchorDataClient {
     }
 
     private BojiangAnchorInfo fetchRankStat(String anchorId, String dt, LocalDate date, YearMonth month) {
-        String url = RANK_URL + "?rids=" + anchorId + "&dt=" + dt + "&rank_type=chat_pv";
-        JSONObject json = requestJson(url);
+        JSONObject json;
+        String proxyBase = getProxy();
+        if (StringUtils.hasText(proxyBase)) {
+            // 统一在看代理：虎牙 rank 也走 doseeingProxy（fc-probe /probe?platform=huya）
+            String body = requestRankViaProxy(proxyBase, anchorId, dt);
+            json = JSONUtil.parseObj(body);
+        } else {
+            String url = RANK_URL + "?rids=" + anchorId + "&dt=" + dt + "&rank_type=chat_pv";
+            json = requestJson(url);
+        }
         JSONObject result = json == null ? null : json.getJSONObject("result");
         JSONArray rows = result == null ? null : result.getJSONArray("result");
         if (rows == null || rows.isEmpty()) {
@@ -203,6 +213,10 @@ public class DoseeingHuyaClient implements AnchorDataClient {
     }
 
     private String fetchDoseeingRoomPage(String roomId, String cookie) {
+        String proxyBase = getProxy();
+        if (StringUtils.hasText(proxyBase)) {
+            return requestPageViaProxy(proxyBase, "/huya/data/room/" + roomId, cookie);
+        }
         try (HttpResponse httpResponse = HttpRequest.get(HUYA_ROOM_DATA_URL + roomId)
                 .timeout(TIMEOUT_MS)
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0")
@@ -233,6 +247,68 @@ public class DoseeingHuyaClient implements AnchorDataClient {
 
     private String getCookie() {
         return configHelper.getString(CONFIG_GROUP_YUN, "doseeingCookie", "");
+    }
+
+    private String getProxy() {
+        return configHelper.getString(CONFIG_GROUP_YUN, "doseeingProxy", "");
+    }
+
+    /**
+     * 通过在看统一代理(fc-probe /probe?platform=huya)抓取虎牙 rank 数据。
+     */
+    private String requestRankViaProxy(String proxyBase, String anchorId, String dt) {
+        StringBuilder url = new StringBuilder(proxyBase)
+                .append("/probe?platform=huya&room=").append(anchorId)
+                .append("&dt=").append(dt);
+        String cookie = getCookie();
+        if (StringUtils.hasText(cookie)) {
+            url.append("&cookie=").append(URLEncoder.encode(cookie, StandardCharsets.UTF_8));
+        }
+        return executeProxyGet(url.toString(), "在看虎牙代理");
+    }
+
+    /**
+     * 通过在看统一代理(fc-probe /proxy-html)抓取在看站内页面（虎牙房间数据页）。
+     */
+    private String requestPageViaProxy(String proxyBase, String path, String cookie) {
+        StringBuilder url = new StringBuilder(proxyBase)
+                .append("/proxy-html?path=").append(URLEncoder.encode(path, StandardCharsets.UTF_8))
+                .append("&referer=").append(URLEncoder.encode(HUYA_BASE_URL + "/room/" + path.substring(path.lastIndexOf('/') + 1), StandardCharsets.UTF_8));
+        if (StringUtils.hasText(cookie)) {
+            url.append("&cookie=").append(URLEncoder.encode(cookie, StandardCharsets.UTF_8));
+        }
+        return executeProxyGet(url.toString(), "在看虎牙房间页");
+    }
+
+    /**
+     * 执行对在看代理的 GET 请求，解析 {@code {reachable, http_status, body}} 返回体。
+     */
+    private String executeProxyGet(String url, String desc) {
+        try (HttpResponse httpResponse = HttpRequest.get(url)
+                .timeout(TIMEOUT_MS + 15000)
+                .execute()) {
+            String fcBody = httpResponse.body();
+            JSONObject fcJson = JSONUtil.parseObj(fcBody);
+            if (!fcJson.getBool("reachable", false)) {
+                throw new BusinessException(desc + "抓取失败: HTTP " + httpResponse.getStatus() + " " + shortText(fcBody));
+            }
+            String body = fcJson.getStr("body");
+            if (!StringUtils.hasText(body)) {
+                throw new BusinessException(desc + "返回为空");
+            }
+            return body;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException("请求在看代理接口失败: " + e.getMessage());
+        }
+    }
+
+    private String shortText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.length() > 500 ? value.substring(0, 500) : value;
     }
 
     private String fetchRoomPage(String roomId) {
