@@ -97,6 +97,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '首页公告', icon: 'NotificationsOutline' }
       },
       {
+        path: 'yun/feedback',
+        name: 'YunFeedback',
+        component: () => import('@/views/yun/feedback/index.vue'),
+        meta: { title: '用户反馈', icon: 'HelpOutline' }
+      },
+      {
         path: 'yun/anchor',
         name: 'YunAnchor',
         component: () => import('@/views/yun/anchor/index.vue'),

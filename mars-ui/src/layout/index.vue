@@ -665,6 +665,7 @@ function getIconName(key: string): string {
     '/log/operlog': 'ListOutline',
     '/log/loginlog': 'LogInOutline',
     '/system/file': 'DocumentOutline',
+    '/yun/feedback': 'HelpOutline',
     '/message/notice': 'NotificationsOutline',
     '/message/chat': 'ChatbubbleOutline',
     '/monitor/online': 'PeopleCircleOutline',

@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +74,31 @@ public class SysConfigGroupServiceImpl implements SysConfigGroupService {
         configGroupMapper.updateById(config);
         
         // 更新缓存
+        localCache.put(groupCode, config);
+        redisTemplate.opsForValue().set(CACHE_KEY_PREFIX + groupCode, configValue);
+    }
+
+    @Override
+    public void saveOrCreateConfig(String groupCode, String groupName, String configValue, Integer sort, String remark) {
+        SysConfigGroup config = configGroupMapper.selectByGroupCode(groupCode);
+        LocalDateTime now = LocalDateTime.now();
+        if (config == null) {
+            config = new SysConfigGroup();
+            config.setGroupCode(groupCode);
+            config.setGroupName(groupName);
+            config.setSort(sort == null ? 100 : sort);
+            config.setStatus(1);
+            config.setRemark(remark);
+            config.setCreateTime(now);
+            config.setUpdateTime(now);
+            config.setConfigValue(configValue);
+            configGroupMapper.insert(config);
+        } else {
+            config.setConfigValue(configValue);
+            config.setUpdateTime(now);
+            configGroupMapper.updateById(config);
+        }
+
         localCache.put(groupCode, config);
         redisTemplate.opsForValue().set(CACHE_KEY_PREFIX + groupCode, configValue);
     }

@@ -234,6 +234,12 @@ function handleBannerTap(banner: HomeBanner) {
     }
   }
 }
+
+function openFeedback() {
+  uni.navigateTo({
+    url: '/pages/feedback/feedback',
+  })
+}
 </script>
 
 <template>
@@ -326,11 +332,15 @@ function handleBannerTap(banner: HomeBanner) {
             </view>
           </YunPanel>
 
-        <!-- <QuickGrid :items="homeQuickActions" /> -->
+          <!-- <QuickGrid :items="homeQuickActions" /> -->
         </view>
       </scroll-view>
     </view>
   </YunPage>
+
+  <view v-if="!popupVisible" class="home-feedback-fab" @tap="openFeedback">
+    <view class="i-carbon-help feedback-fab-icon" />
+  </view>
 
   <AddToDesktopTip />
 
@@ -368,7 +378,7 @@ function handleBannerTap(banner: HomeBanner) {
 .home-content {
   width: 100%;
   box-sizing: border-box;
-  padding-bottom: 40rpx;
+  padding-bottom: 150rpx;
 }
 
 .home-banner-frame {
@@ -467,6 +477,30 @@ function handleBannerTap(banner: HomeBanner) {
 
 .notice-copy-clone {
   padding-left: 72rpx;
+}
+
+.home-feedback-fab {
+  position: fixed;
+  right: 28rpx;
+  bottom: calc(156rpx + env(safe-area-inset-bottom));
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76rpx;
+  height: 76rpx;
+  padding: 0;
+  border: 1rpx solid rgba(255, 255, 255, 0.14);
+  border-radius: 999rpx;
+  background: rgba(24, 20, 28, 0.86);
+  box-shadow: 0 12rpx 34rpx rgba(0, 0, 0, 0.34), 0 0 0 1rpx rgba(233, 138, 182, 0.08) inset;
+  backdrop-filter: blur(18rpx);
+  -webkit-backdrop-filter: blur(18rpx);
+}
+
+.feedback-fab-icon {
+  color: var(--ephone-primary-soft);
+  font-size: 36rpx;
 }
 
 .home-rank-list {

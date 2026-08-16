@@ -32,6 +32,7 @@ public class SystemConfigHelper implements com.mars.crypto.CryptoConfigProvider,
     public static final String GROUP_SECURITY = "security";
     public static final String GROUP_WECHAT_MINIPROGRAM = "wechatMiniProgram";
     public static final String GROUP_WECHAT_MP = "wechatMp";
+    public static final String GROUP_FEEDBACK_CONTACT = "feedbackContact";
 
     /**
      * 获取配置JSON

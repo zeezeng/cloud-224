@@ -101,6 +101,9 @@ export default defineConfig({
     'i-carbon-cloud-offline',
     'i-carbon-search-locate',
     'i-carbon-close',
+    'i-carbon-chat',
+    'i-carbon-send',
+    'i-carbon-qr-code',
   ],
   rules: [
     [

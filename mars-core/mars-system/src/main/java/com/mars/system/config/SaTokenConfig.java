@@ -33,6 +33,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                             "/api/app/notice/list",         // App端首页跑马灯公告
                             "/api/app/notice/popup",        // App端弹窗公告
                             "/api/app/ranking/**",          // App端公开排行
+                            "/api/app/feedback/**",         // App端匿名反馈
                             "/api/wechat/miniprogram/**",   // 微信小程序接口
                             "/api/mall/home",               // 小程序首页
                             "/api/mall/login",              // 小程序登录

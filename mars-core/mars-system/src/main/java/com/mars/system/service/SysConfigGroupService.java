@@ -22,6 +22,11 @@ public interface SysConfigGroupService {
      * 保存配置
      */
     void saveConfig(String groupCode, String configValue);
+
+    /**
+     * 保存配置，不存在时自动创建配置分组
+     */
+    void saveOrCreateConfig(String groupCode, String groupName, String configValue, Integer sort, String remark);
     
     /**
      * 获取配置值

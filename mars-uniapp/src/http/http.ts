@@ -29,19 +29,31 @@ export function http<T>(options: CustomRequestOptions) {
         const isTokenExpired = res.statusCode === 401 || code === ResultEnum.Unauthorized
 
         if (isTokenExpired) {
+          const httpError = createHttpError({
+            type: HttpErrorType.Auth,
+            code,
+            statusCode: res.statusCode,
+            message: getResponseMessage(responseData, '登录已过期，请重新登录'),
+            data: responseData?.data,
+            raw: res,
+          })
+
+          if (options.skipAuth) {
+            if (!options.hideErrorToast) {
+              uni.showToast({
+                icon: 'none',
+                title: httpError.message,
+              })
+            }
+            return reject(httpError)
+          }
+
           const tokenStore = useTokenStore()
           if (!isDoubleTokenMode) {
             // 未启用双token策略，清理用户信息，跳转到登录页
             tokenStore.logout()
             toLoginPage()
-            return reject(createHttpError({
-              type: HttpErrorType.Auth,
-              code,
-              statusCode: res.statusCode,
-              message: getResponseMessage(responseData, '登录已过期，请重新登录'),
-              data: responseData?.data,
-              raw: res,
-            }))
+            return reject(httpError)
           }
 
           /* -------- 无感刷新 token ----------- */
@@ -97,14 +109,7 @@ export function http<T>(options: CustomRequestOptions) {
             }
           }
 
-          return reject(createHttpError({
-            type: HttpErrorType.Auth,
-            code,
-            statusCode: res.statusCode,
-            message: getResponseMessage(responseData, '登录已过期，请重新登录'),
-            data: responseData?.data,
-            raw: res,
-          }))
+          return reject(httpError)
         }
 
         // 处理其他成功状态（HTTP状态码200-299）
