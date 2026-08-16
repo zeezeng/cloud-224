@@ -151,6 +151,9 @@
               </div>
             </div>
           </n-form-item-gi>
+          <n-form-item-gi label="主播大图" path="bigImageUrl">
+            <ImageUpload v-model="formData.bigImageUrl" />
+          </n-form-item-gi>
           <n-form-item-gi label="公会编号" path="guildNo">
             <n-input v-model:value="formData.guildNo" placeholder="请输入公会编号" />
           </n-form-item-gi>
@@ -381,6 +384,7 @@ import {
   SettingsOutline,
   TrashOutline
 } from '@vicons/ionicons5'
+import ImageUpload from '@/components/ImageUpload.vue'
 import { anchorApi, type AnchorDataSource, type AnchorFlag, type AnchorStatus, type YunAnchor, type YunAnchorPageRow, type YunCookieStatus, type YunSyncProgress, type YunSyncResult } from '@/api/anchor'
 import { configGroupApi } from '@/api/org'
 import { useUserStore } from '@/stores/user'
@@ -492,6 +496,7 @@ const defaultFormData: YunAnchor = {
   roomId: '',
   anchorName: '',
   avatarUrl: '',
+  bigImageUrl: '',
   roomTitle: '',
   categoryId: '',
   categoryName: '',

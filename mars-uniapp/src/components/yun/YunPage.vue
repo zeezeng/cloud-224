@@ -96,9 +96,13 @@ onMounted(() => {
 
 .ephone-content-scroll-locked {
   display: flex;
+  width: 100vw;
+  max-width: none;
   height: 100vh;
   min-height: 0;
   overflow: hidden;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .ephone-content-with-image {

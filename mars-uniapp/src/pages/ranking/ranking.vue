@@ -43,6 +43,8 @@ const periodLabel = ref('')
 const periodKey = ref('')
 const showBackTop = ref(false)
 const listScrollTop = ref(0)
+const searchKeyword = ref('')
+const searchInput = ref('')
 
 let loadGeneration = 0
 let currentListScrollTop = 0
@@ -99,6 +101,7 @@ async function loadRanking({ reset = false, isPullRefresh = false } = {}) {
       period: currentPeriod.value,
       page: requestPage,
       pageSize: RANKING_PAGE_SIZE,
+      keyword: searchKeyword.value,
     })
     if (generation !== loadGeneration) {
       return
@@ -176,6 +179,25 @@ function handleLoadMore() {
   loadRanking()
 }
 
+function handleSearch() {
+  const keyword = searchInput.value.trim()
+  if (keyword === searchKeyword.value) {
+    return
+  }
+  searchKeyword.value = keyword
+  records.value = []
+  loadRanking({ reset: true })
+}
+
+function handleClearSearch() {
+  searchInput.value = ''
+  if (searchKeyword.value) {
+    searchKeyword.value = ''
+    records.value = []
+    loadRanking({ reset: true })
+  }
+}
+
 function handleListScroll(event: { detail?: { scrollTop?: number } }) {
   currentListScrollTop = Number(event.detail?.scrollTop || 0)
   showBackTop.value = currentListScrollTop > 420
@@ -197,6 +219,27 @@ onLoad(() => {
     <view class="ranking-layout">
       <view class="ranking-fixed">
         <CapsuleTabs :items="periodTabs" :active="activePeriodIndex" compact @select="handlePeriodSelect" />
+        <view class="ranking-search">
+          <input
+            v-model="searchInput"
+            class="ranking-search-input"
+            placeholder="搜索主播名 / 房间号 / 公会"
+            placeholder-class="ranking-search-placeholder"
+            confirm-type="search"
+            @confirm="handleSearch"
+            @input="searchInput = $event.detail.value"
+          >
+          <view
+            v-if="searchInput || searchKeyword"
+            class="ranking-search-clear"
+            @click="handleClearSearch"
+          >
+            清除
+          </view>
+          <view class="ranking-search-btn" :class="{ 'is-active': !!searchKeyword }" @click="handleSearch">
+            搜索
+          </view>
+        </view>
         <view class="ranking-summary">
           <text>{{ summaryText }}</text>
           <text class="ranking-sync-time">{{ latestSyncTimeText }}</text>
@@ -278,10 +321,61 @@ onLoad(() => {
   margin-top: 0;
 }
 
-/* 与 .ranking-fixed 实际高度对齐：capsule(80) + summary(68) + padding-bottom(12) = 160rpx，避免统计栏遮挡列表 */
+/* 与 .ranking-fixed 实际高度对齐：capsule(80) + search(60) + summary(68) + padding-bottom(12) = 220rpx，避免搜索栏遮挡列表 */
 .ranking-fixed-space {
-  flex: 0 0 160rpx;
-  height: 160rpx;
+  flex: 0 0 220rpx;
+  height: 220rpx;
+}
+
+.ranking-search {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding-top: 12rpx;
+}
+
+.ranking-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 60rpx;
+  padding: 0 24rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 999rpx;
+  background: rgba(0, 0, 0, 0.24);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 24rpx;
+}
+
+.ranking-search-placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.ranking-search-clear {
+  flex: 0 0 auto;
+  height: 40rpx;
+  padding: 0 8rpx;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 22rpx;
+  line-height: 40rpx;
+}
+
+.ranking-search-btn {
+  flex: 0 0 auto;
+  min-width: 104rpx;
+  height: 60rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 60rpx;
+  text-align: center;
+}
+
+.ranking-search-btn.is-active {
+  background: #f2b6cc;
+  color: #2a111b;
 }
 
 .ranking-summary {
@@ -311,6 +405,8 @@ onLoad(() => {
 }
 
 .ranking-content {
-  padding: 0 0 200rpx;
+  max-width: 960rpx;
+  margin: 0 auto;
+  padding: 0 40rpx 200rpx;
 }
 </style>

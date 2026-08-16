@@ -109,6 +109,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '主播管理', icon: 'PersonOutline' }
       },
       {
+        path: 'yun/season',
+        name: 'YunSeason',
+        component: () => import('@/views/yun/season/index.vue'),
+        meta: { title: '主播赛季', icon: 'TrophyOutline' }
+      },
+      {
         path: 'system/customer',
         name: 'Customer',
         component: () => import('@/views/system/customer/index.vue'),

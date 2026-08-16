@@ -75,6 +75,7 @@ function toRecord(item: AnchorGiftRankingRecord, index: number): EphoneRankRecor
 
 export async function getAnchorGiftRanking(params: {
   period: RankingPeriod
+  keyword?: string
   page?: number
   pageSize?: number
 }): Promise<RankingListResult> {
@@ -84,6 +85,7 @@ export async function getAnchorGiftRanking(params: {
     '/app/ranking/anchor-gifts',
     {
       period: params.period,
+      keyword: params.keyword || undefined,
       page,
       pageSize,
     },

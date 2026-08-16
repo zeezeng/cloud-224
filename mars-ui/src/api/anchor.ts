@@ -11,6 +11,7 @@ export interface YunAnchor {
   roomId?: string
   anchorName?: string
   avatarUrl?: string
+  bigImageUrl?: string
   roomTitle?: string
   categoryId?: string
   categoryName?: string

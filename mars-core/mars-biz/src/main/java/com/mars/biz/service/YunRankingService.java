@@ -7,5 +7,5 @@ import com.mars.biz.dto.YunRankingResponse;
  */
 public interface YunRankingService {
 
-    YunRankingResponse getAnchorGiftRanking(String period, Integer page, Integer pageSize);
+    YunRankingResponse getAnchorGiftRanking(String period, Integer page, Integer pageSize, String keyword);
 }

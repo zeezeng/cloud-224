@@ -39,7 +39,7 @@ withDefaults(defineProps<{
         </view>
       </view>
       <view class="ranking-stat">
-        <StatValue :value="record.value" :label="valueLabel" :size="variant === 'enjoy' ? 'lg' : 'md'" />
+        <StatValue :value="record.value" :label="valueLabel" size="md" />
         <view v-if="showTrend" class="ranking-trend" :class="`ranking-trend-${record.trend}`">
           <view :class="record.trend === 'down' ? 'i-carbon-arrow-down' : 'i-carbon-arrow-up'" />
         </view>
@@ -179,7 +179,6 @@ withDefaults(defineProps<{
 
 .ranking-list-enjoy :deep(.stat-main) {
   color: var(--ephone-primary-soft);
-  font-size: 36rpx;
   text-shadow: none;
 }
 

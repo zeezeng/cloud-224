@@ -185,6 +185,7 @@ async function handleBackTop() {
     <view class="vault-detail-glow" />
     <YunTransparentNav
       title="金库明细"
+      opaque
       fallback-url="/pages/vault/vault"
       fallback-type="switchTab"
       @layout="handleNavLayout"
@@ -308,10 +309,14 @@ async function handleBackTop() {
 }
 
 .vault-detail-scroll {
-  position: relative;
+  position: absolute;
+  top: calc(
+    var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx)
+  );
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 1;
-  width: 100%;
-  height: 100%;
 }
 
 .vault-detail-content {
@@ -319,10 +324,7 @@ async function handleBackTop() {
   max-width: 960rpx;
   min-height: 100%;
   margin: 0 auto;
-  padding: calc(
-      var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 36rpx
-    )
-    40rpx 160rpx;
+  padding: 24rpx 40rpx 160rpx;
 }
 
 .vault-summary {

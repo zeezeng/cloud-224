@@ -312,7 +312,9 @@ onLoad(() => {
 }
 
 .enjoy-list-content {
-  padding: 0 0 24rpx;
+  max-width: 960rpx;
+  margin: 0 auto;
+  padding: 0 40rpx 24rpx;
 }
 
 .enjoy-refreshing {

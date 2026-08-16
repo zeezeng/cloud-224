@@ -80,6 +80,7 @@ const tabbarPages = new Set([
   'pages/ranking/ranking',
   'pages/enjoy/enjoy',
   'pages/vault/vault',
+  'pages/season/season',
 ])
 
 onMounted(() => {
@@ -378,7 +379,9 @@ function openFeedback() {
 .home-content {
   width: 100%;
   box-sizing: border-box;
-  padding-bottom: 150rpx;
+  max-width: 960rpx;
+  margin: 0 auto;
+  padding: 0 40rpx 150rpx;
 }
 
 .home-banner-frame {
@@ -545,10 +548,15 @@ function openFeedback() {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6rpx;
+  gap: 8rpx;
   color: var(--ephone-primary-soft);
-  font-size: 26rpx;
+  font-size: 34rpx;
   font-weight: 900;
+  line-height: 1;
+}
+
+.home-rank-value .i-carbon-fire {
+  font-size: 32rpx;
 }
 
 .home-rank-avatar {

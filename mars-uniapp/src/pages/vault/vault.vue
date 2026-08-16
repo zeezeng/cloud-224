@@ -314,7 +314,9 @@ onLoad(() => {
 }
 
 .vault-list-content {
-  padding: 18rpx 0 24rpx;
+  max-width: 960rpx;
+  margin: 0 auto;
+  padding: 8rpx 40rpx 20rpx;
 }
 
 .vault-history-link {

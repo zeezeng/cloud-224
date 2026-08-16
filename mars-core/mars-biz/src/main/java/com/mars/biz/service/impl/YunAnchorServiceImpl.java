@@ -348,6 +348,7 @@ public class YunAnchorServiceImpl extends ServiceImpl<YunAnchorMapper, YunAnchor
     private void trimFields(YunAnchor anchor) {
         anchor.setAnchorName(trim(anchor.getAnchorName(), 100));
         anchor.setAvatarUrl(trim(anchor.getAvatarUrl(), 500));
+        anchor.setBigImageUrl(trim(anchor.getBigImageUrl(), 500));
         anchor.setRoomTitle(trim(anchor.getRoomTitle(), 255));
         anchor.setCategoryId(trim(anchor.getCategoryId(), 64));
         anchor.setCategoryName(trim(anchor.getCategoryName(), 100));

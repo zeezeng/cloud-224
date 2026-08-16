@@ -36,7 +36,7 @@ public class YunRankingServiceImpl implements YunRankingService {
     private final YunAnchorGiftStatMapper giftStatMapper;
 
     @Override
-    public YunRankingResponse getAnchorGiftRanking(String period, Integer page, Integer pageSize) {
+    public YunRankingResponse getAnchorGiftRanking(String period, Integer page, Integer pageSize, String keyword) {
         PeriodInfo periodInfo = resolvePeriod(period);
         int currentPage = Math.max(page == null ? 1 : page, 1);
         int size = Math.min(Math.max(pageSize == null ? 20 : pageSize, 1), 100);
@@ -55,6 +55,13 @@ public class YunRankingServiceImpl implements YunRankingService {
         List<YunRankingRecord> sortedRecords = anchorIds.isEmpty()
                 ? List.of()
                 : buildSortedRecords(periodInfo, anchorMap, anchorIds);
+
+        if (StringUtils.hasText(keyword)) {
+            String value = keyword.trim().toLowerCase();
+            sortedRecords = sortedRecords.stream()
+                    .filter(record -> matches(record, value))
+                    .collect(Collectors.toList());
+        }
 
         for (int i = 0; i < sortedRecords.size(); i++) {
             sortedRecords.get(i).setRankNo(i + 1);
@@ -79,6 +86,17 @@ public class YunRankingServiceImpl implements YunRankingService {
         response.setPageSize((long) size);
         response.setList(pageList);
         return response;
+    }
+
+    private boolean matches(YunRankingRecord record, String value) {
+        return contains(record.getName(), value)
+                || contains(record.getAnchorId(), value)
+                || contains(record.getRoomId(), value)
+                || contains(record.getGuildName(), value);
+    }
+
+    private boolean contains(String source, String value) {
+        return StringUtils.hasText(source) && source.toLowerCase().contains(value);
     }
 
     private List<YunRankingRecord> buildSortedRecords(PeriodInfo periodInfo, Map<String, YunAnchor> anchorMap, List<String> anchorIds) {

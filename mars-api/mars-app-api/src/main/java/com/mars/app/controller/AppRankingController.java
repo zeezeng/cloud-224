@@ -22,8 +22,9 @@ public class AppRankingController {
     @GetMapping("/anchor-gifts")
     public Result<YunRankingResponse> anchorGiftRanking(
             @RequestParam(defaultValue = "today") String period,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        return Result.ok(yunRankingService.getAnchorGiftRanking(period, page, pageSize));
+        return Result.ok(yunRankingService.getAnchorGiftRanking(period, page, pageSize, keyword));
     }
 }

@@ -41,6 +41,11 @@ public class YunAnchor extends BaseEntity {
     private String avatarUrl;
 
     /**
+     * 主播大图
+     */
+    private String bigImageUrl;
+
+    /**
      * 直播间标题
      */
     private String roomTitle;

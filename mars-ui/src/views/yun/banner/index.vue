@@ -170,7 +170,8 @@ const pagePathOptions = [
   { label: '主播 /pages/anchors/anchors', value: '/pages/anchors/anchors' },
   { label: '排行 /pages/ranking/ranking', value: '/pages/ranking/ranking' },
   { label: '乐享 /pages/enjoy/enjoy', value: '/pages/enjoy/enjoy' },
-  { label: '金库 /pages/vault/vault', value: '/pages/vault/vault' }
+  { label: '金库 /pages/vault/vault', value: '/pages/vault/vault' },
+  { label: '赛季 /pages/season/season', value: '/pages/season/season' }
 ]
 
 const searchForm = reactive<{
