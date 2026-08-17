@@ -378,8 +378,8 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         if (captainFlag != null) {
             wrapper.eq(YunSeasonAnchor::getCaptainFlag, captainFlag);
         }
-        wrapper.orderByAsc(YunSeasonAnchor::getFailTimes)
-                .orderByAsc(YunSeasonAnchor::getEliminated)
+        wrapper.orderByAsc(YunSeasonAnchor::getEliminated)
+                .orderByAsc(YunSeasonAnchor::getFailTimes)
                 .orderByDesc(YunSeasonAnchor::getCaptainFlag)
                 .orderByAsc(YunSeasonAnchor::getSort)
                 .orderByDesc(YunSeasonAnchor::getId);

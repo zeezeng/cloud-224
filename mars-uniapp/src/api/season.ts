@@ -71,7 +71,7 @@ function normalizeMemberList(items: AppSeasonMember[]) {
       failTimes: Number(item.failTimes || 0),
       nextEliminationAmount: toNumber(item.nextEliminationAmount),
     }))
-    .sort((a, b) => (a.failTimes || 0) - (b.failTimes || 0) || (a.eliminated || 0) - (b.eliminated || 0) || (b.captainFlag || 0) - (a.captainFlag || 0) || (a.sort || 0) - (b.sort || 0) || (b.id || 0) - (a.id || 0))
+    .sort((a, b) => (a.eliminated || 0) - (b.eliminated || 0) || (a.failTimes || 0) - (b.failTimes || 0) || (b.captainFlag || 0) - (a.captainFlag || 0) || (a.sort || 0) - (b.sort || 0) || (b.id || 0) - (a.id || 0))
 }
 
 export async function getSeasonList() {
