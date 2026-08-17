@@ -71,9 +71,9 @@ public class YunSeasonAnchor extends BaseEntity {
     private Integer eliminated;
 
     /**
-     * 淘汰次数
+     * 失败次数
      */
-    private Integer eliminationTimes;
+    private Integer failTimes;
 
     /**
      * 下次淘汰金额

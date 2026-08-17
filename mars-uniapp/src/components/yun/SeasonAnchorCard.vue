@@ -21,7 +21,7 @@ const isCaptain = computed(() => props.record.captainFlag === 1)
 
 const teamName = computed(() => props.record.teamName || '')
 
-const eliminationTimes = computed(() => Number(props.record.eliminationTimes || 0))
+const failTimes = computed(() => Number(props.record.failTimes || 0))
 
 const nextEliminationAmountText = computed(() => formatMoney(Number(props.record.nextEliminationAmount || 0)).replace(/\.00$/, ''))
 </script>
@@ -51,7 +51,7 @@ const nextEliminationAmountText = computed(() => formatMoney(Number(props.record
       <view class="row-meta">
         <text v-if="isCaptain" class="row-captain">队长</text>
         <text v-if="teamName" class="row-team">{{ teamName }}</text>
-        <text class="row-times">淘汰 {{ eliminationTimes }} 次</text>
+        <text class="row-times">开条 {{ failTimes }} 次</text>
       </view>
     </view>
 

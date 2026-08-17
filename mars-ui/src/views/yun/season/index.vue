@@ -349,8 +349,8 @@
               <template #unchecked>未淘汰</template>
             </n-switch>
           </n-form-item-gi>
-          <n-form-item-gi label="开条次数" path="eliminationTimes">
-            <n-input-number v-model:value="memberEditFormData.eliminationTimes" :min="0" :step="1" style="width: 100%" />
+          <n-form-item-gi label="开条次数" path="failTimes">
+            <n-input-number v-model:value="memberEditFormData.failTimes" :min="0" :step="1" style="width: 100%" />
           </n-form-item-gi>
           <n-form-item-gi label="下次金额" path="nextEliminationAmount">
             <n-input-number v-model:value="memberEditFormData.nextEliminationAmount" :min="0" :step="1" style="width: 100%" />
@@ -576,7 +576,7 @@ const memberEditFormData = reactive<YunSeasonAnchor>({
   teamName: '',
   captainFlag: 0,
   eliminated: 0,
-  eliminationTimes: 0,
+  failTimes: 0,
   nextEliminationAmount: 0,
   sort: 0,
   remark: '',
@@ -713,7 +713,7 @@ const memberColumns: DataTableColumns<YunSeasonAnchorPageRow> = [
       }, isEliminated ? '已淘汰' : '未淘汰')
     },
   },
-  { title: '开条次数', key: 'eliminationTimes', width: 100 },
+  { title: '开条次数', key: 'failTimes', width: 100 },
   { title: '下次金额', key: 'nextEliminationAmount', width: 120 },
   {
     title: '操作',
@@ -869,7 +869,7 @@ function resetMemberEditForm() {
     teamName: '',
     captainFlag: 0,
     eliminated: 0,
-    eliminationTimes: 0,
+    failTimes: 0,
     nextEliminationAmount: 0,
     sort: 0,
     remark: '',
@@ -1238,7 +1238,7 @@ function openResetConfirm() {
   }
   dialog.warning({
     title: '重置成员状态',
-    content: '将把当前赛季所有成员重置为未淘汰状态，开条次数、轮次和下次金额清零，确定继续吗？',
+    content: '将把当前赛季所有成员重置为未淘汰状态，开条次数和下次金额清零，确定继续吗？',
     positiveText: '重置',
     negativeText: '取消',
     onPositiveClick: async () => {

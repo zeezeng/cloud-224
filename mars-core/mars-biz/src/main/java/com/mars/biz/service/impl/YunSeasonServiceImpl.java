@@ -354,7 +354,7 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         seasonAnchorMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<YunSeasonAnchor>()
                 .eq(YunSeasonAnchor::getSeasonId, seasonId)
                 .set(YunSeasonAnchor::getEliminated, ELIMINATED_NO)
-                .set(YunSeasonAnchor::getEliminationTimes, 0)
+                .set(YunSeasonAnchor::getFailTimes, 0)
                 .set(YunSeasonAnchor::getNextEliminationAmount, DEFAULT_AMOUNT));
     }
 
@@ -378,7 +378,8 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         if (captainFlag != null) {
             wrapper.eq(YunSeasonAnchor::getCaptainFlag, captainFlag);
         }
-        wrapper.orderByAsc(YunSeasonAnchor::getEliminated)
+        wrapper.orderByAsc(YunSeasonAnchor::getFailTimes)
+                .orderByAsc(YunSeasonAnchor::getEliminated)
                 .orderByDesc(YunSeasonAnchor::getCaptainFlag)
                 .orderByAsc(YunSeasonAnchor::getSort)
                 .orderByDesc(YunSeasonAnchor::getId);
@@ -451,7 +452,7 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         member.setTeamName(trim(request == null ? null : request.getTeamName(), 100));
         member.setCaptainFlag(request != null && request.getCaptainFlag() != null ? request.getCaptainFlag() : 0);
         member.setEliminated(ELIMINATED_NO);
-        member.setEliminationTimes(0);
+        member.setFailTimes(0);
         member.setNextEliminationAmount(DEFAULT_AMOUNT);
         member.setSort(sortIndex);
         return member;
@@ -462,7 +463,7 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         BeanUtils.copyProperties(source, member, "id", "createTime", "updateTime", "createBy", "updateBy", "deleted");
         member.setSeasonId(seasonId);
         member.setEliminated(ELIMINATED_NO);
-        member.setEliminationTimes(0);
+        member.setFailTimes(0);
         member.setNextEliminationAmount(DEFAULT_AMOUNT);
         member.setSort(sortIndex);
         return member;
@@ -585,8 +586,8 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         if (member.getEliminated() == null) {
             member.setEliminated(ELIMINATED_NO);
         }
-        if (member.getEliminationTimes() == null) {
-            member.setEliminationTimes(0);
+        if (member.getFailTimes() == null) {
+            member.setFailTimes(0);
         }
         if (member.getNextEliminationAmount() == null) {
             member.setNextEliminationAmount(DEFAULT_AMOUNT);

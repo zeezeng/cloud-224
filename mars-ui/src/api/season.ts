@@ -40,7 +40,7 @@ export interface YunSeasonAnchor {
   teamName?: string
   captainFlag?: CaptainFlag
   eliminated?: EliminatedFlag
-  eliminationTimes?: number
+  failTimes?: number
   nextEliminationAmount?: number | string
   sort?: number
   remark?: string
