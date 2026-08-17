@@ -20,15 +20,7 @@ const rankLabel = computed(() => {
 
 const balanceText = computed(() => formatIntegerMoney(props.record.balance))
 
-const rankBadgeClass = computed(() => {
-  return props.rank <= 3 ? 'is-top' : 'is-plain'
-})
-
-const isTopRank = computed(() => props.rank <= 3)
-
-const avatarRing = computed(() => {
-  return isTopRank.value ? 'rgba(242, 182, 204, 0.62)' : 'rgba(255, 255, 255, 0.14)'
-})
+const avatarRing = computed(() => 'rgba(255, 255, 255, 0.14)')
 
 function handleView() {
   emit('view', props.record)
@@ -36,8 +28,8 @@ function handleView() {
 </script>
 
 <template>
-  <view class="vault-card" :class="{ 'is-top-card': isTopRank }" hover-class="vault-card-hover" @tap="handleView">
-    <view class="vault-rank" :class="rankBadgeClass">
+  <view class="vault-card" hover-class="vault-card-hover" @tap="handleView">
+    <view class="vault-rank is-plain">
       <text class="vault-badge-num">{{ rankLabel }}</text>
     </view>
 
@@ -56,11 +48,6 @@ function handleView() {
       <view class="vault-name-line">
         <text class="vault-name">{{ record.name }}</text>
         <text v-if="record.group" class="vault-tag">{{ record.group }}</text>
-      </view>
-
-      <view class="vault-meta">
-        <view class="i-carbon-money vault-meta-ic" />
-        <text>金币余额</text>
       </view>
     </view>
 
@@ -103,15 +90,6 @@ function handleView() {
   opacity: 0;
 }
 
-.vault-card.is-top-card {
-  border-color: rgba(242, 182, 204, 0.18);
-  background: rgba(255, 255, 255, 0.055);
-}
-
-.vault-card.is-top-card::before {
-  opacity: 0.7;
-}
-
 .vault-card-hover {
   background: rgba(255, 255, 255, 0.075);
   opacity: 0.94;
@@ -138,12 +116,6 @@ function handleView() {
   border: 1rpx solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.035);
   color: rgba(255, 255, 255, 0.62);
-}
-
-.vault-rank.is-top {
-  border: 1rpx solid rgba(242, 182, 204, 0.42);
-  background: rgba(242, 182, 204, 0.1);
-  color: var(--ephone-primary-soft);
 }
 
 .vault-avatar {
@@ -202,22 +174,6 @@ function handleView() {
   line-height: 30rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.vault-meta {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  margin-top: 12rpx;
-  color: rgba(255, 255, 255, 0.46);
-  font-size: 21rpx;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.vault-meta-ic {
-  color: rgba(242, 182, 204, 0.68);
-  font-size: 24rpx;
 }
 
 .vault-balance {

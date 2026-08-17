@@ -556,6 +556,7 @@ function openFeedback() {
 }
 
 .home-rank-value .i-carbon-fire {
+  flex-shrink: 0;
   font-size: 32rpx;
 }
 
