@@ -32,6 +32,11 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
     private static final String CRON_EXPRESSION = "0 0/20 * * * ?";
     private static final String REMARK = "同步在看今日和本月礼物榜，每20分钟执行一次";
 
+    private static final String YESTERDAY_JOB_NAME = "在看昨日补全同步";
+    private static final String YESTERDAY_INVOKE_TARGET = "bojiangSyncTask.syncYesterday";
+    private static final String YESTERDAY_CRON_EXPRESSION = "0 3 0 * * ?";
+    private static final String YESTERDAY_REMARK = "昨日结束后补全昨日完整数据，每日00:03执行一次";
+
     private final Scheduler scheduler;
 
     /**
@@ -40,6 +45,7 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
     @PostConstruct
     public void init() throws SchedulerException {
         ensureDoseeingSyncJob();
+        ensureDoseeingYesterdayJob();
         removeLegacyYesterdaySyncJob();
         scheduler.clear();
         List<SysJob> jobList = this.list();
@@ -101,6 +107,59 @@ public class SysJobServiceImpl extends ServiceImpl<SysJobMapper, SysJob> impleme
         LambdaQueryWrapper<SysJob> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysJob::getId, 5L);
         this.remove(wrapper);
+    }
+
+    /**
+     * 确保每日"昨日补全"定时任务存在：昨日结束后(每日00:03)执行一次，
+     * 补全昨日日末数据，避免昨日记录停留在跨天前的最后一次刷新。
+     */
+    private void ensureDoseeingYesterdayJob() {
+        LambdaQueryWrapper<SysJob> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysJob::getJobGroup, JOB_GROUP)
+                .eq(SysJob::getInvokeTarget, YESTERDAY_INVOKE_TARGET);
+        SysJob job = this.list(wrapper).stream().findFirst().orElse(null);
+        if (job == null) {
+            job = new SysJob();
+            job.setJobName(YESTERDAY_JOB_NAME);
+            job.setJobGroup(JOB_GROUP);
+            job.setInvokeTarget(YESTERDAY_INVOKE_TARGET);
+            job.setCronExpression(YESTERDAY_CRON_EXPRESSION);
+            job.setMisfirePolicy(3);
+            job.setConcurrent(1);
+            job.setStatus(1);
+            job.setRemark(YESTERDAY_REMARK);
+            this.save(job);
+            return;
+        }
+
+        boolean changed = false;
+        if (!YESTERDAY_JOB_NAME.equals(job.getJobName())) {
+            job.setJobName(YESTERDAY_JOB_NAME);
+            changed = true;
+        }
+        if (!YESTERDAY_CRON_EXPRESSION.equals(job.getCronExpression())) {
+            job.setCronExpression(YESTERDAY_CRON_EXPRESSION);
+            changed = true;
+        }
+        if (!Integer.valueOf(3).equals(job.getMisfirePolicy())) {
+            job.setMisfirePolicy(3);
+            changed = true;
+        }
+        if (!Integer.valueOf(1).equals(job.getConcurrent())) {
+            job.setConcurrent(1);
+            changed = true;
+        }
+        if (!Integer.valueOf(1).equals(job.getStatus())) {
+            job.setStatus(1);
+            changed = true;
+        }
+        if (!YESTERDAY_REMARK.equals(job.getRemark())) {
+            job.setRemark(YESTERDAY_REMARK);
+            changed = true;
+        }
+        if (changed) {
+            this.updateById(job);
+        }
     }
 
     @Override

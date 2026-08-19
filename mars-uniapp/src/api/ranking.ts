@@ -68,6 +68,8 @@ function toRecord(item: AnchorGiftRankingRecord, index: number): EphoneRankRecor
     value: srValue > 0 && srValue < 1 ? 1 : Math.round(srValue),
     // 仅保留有意义的中文公会名，过滤 UUID 等纯标识符
     guild: /^[\w-]+$/.test(guildName) ? '' : guildName,
+    // 透出后端真实全局排名，供搜索/榜单按真实名次展示
+    rank: Number(item.rankNo) || undefined,
 
     subtitle: subtitleParts[0] || '主播礼物数据',
   }

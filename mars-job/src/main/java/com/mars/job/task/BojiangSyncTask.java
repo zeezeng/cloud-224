@@ -26,4 +26,14 @@ public class BojiangSyncTask {
                 result.getTotalCount(), result.getSuccessCount(), result.getFailCount());
     }
 
+    /**
+     * 补全昨日完整数据：昨日结束后执行一次，把日末(23:59:59)数据补齐，
+     * 修复昨日记录停留在跨天前最后一次刷新的问题。
+     */
+    public void syncYesterday() {
+        var result = yunAnchorGiftSyncService.syncYesterday("AUTO", DATA_SOURCE_DOSEEING);
+        log.info("主播昨日补全完成: total={}, success={}, fail={}",
+                result.getTotalCount(), result.getSuccessCount(), result.getFailCount());
+    }
+
 }

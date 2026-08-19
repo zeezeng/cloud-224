@@ -155,11 +155,6 @@ function previewQrcode() {
 
     <scroll-view class="feedback-scroll" scroll-y :show-scrollbar="false">
       <view class="feedback-content">
-        <view class="page-title">
-          想法和问题
-          <text>都可以告诉我们</text>
-        </view>
-
         <view class="feedback-card">
           <view class="type-tabs">
             <view
@@ -247,18 +242,6 @@ function previewQrcode() {
       var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 34rpx
     )
     36rpx 190rpx;
-}
-
-.page-title {
-  color: #fff;
-  font-size: 42rpx;
-  font-weight: 900;
-  line-height: 1.28;
-}
-
-.page-title text {
-  display: block;
-  color: rgba(255, 255, 255, 0.58);
 }
 
 .feedback-card {

@@ -27,6 +27,8 @@ export interface EphoneRankRecord {
   subtitle: string
   guild?: string
   trend?: 'up' | 'down'
+  /** 全局真实排名（来自后端 rankNo，搜索/榜单一致），未提供时前端按列表位置推算 */
+  rank?: number
 }
 
 export interface EphoneVaultChange {

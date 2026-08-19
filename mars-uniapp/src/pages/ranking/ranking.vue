@@ -53,6 +53,7 @@ let currentListScrollTop = 0
 const { tryRefresh } = useRefreshLimit(5000)
 
 const currentPeriod = computed(() => periodValues[activePeriodIndex.value] || 'today')
+const isSearching = computed(() => !!searchKeyword.value)
 const podiumRecords = computed(() => records.value.slice(0, 3))
 const listRecords = computed(() => records.value.slice(3))
 const summaryText = computed(() => {
@@ -242,7 +243,8 @@ onLoad(() => {
         </view>
         <view class="ranking-summary">
           <text>{{ summaryText }}</text>
-          <text class="ranking-sync-time">{{ latestSyncTimeText }}</text>
+          <!-- 昨日榜单为终值数据，不再显示“数据截止时间”，避免误导 -->
+          <text v-if="currentPeriod !== 'yesterday'" class="ranking-sync-time">{{ latestSyncTimeText }}</text>
         </view>
       </view>
 
@@ -276,14 +278,25 @@ onLoad(() => {
             @retry="loadMoreError ? loadRanking() : loadRanking({ reset: true })"
             @load-more="handleLoadMore"
           >
-            <PodiumBoard :records="podiumRecords" show-guild />
-            <RankingList
-              v-if="listRecords.length"
-              :records="listRecords"
-              value-label="SR值"
-              :start-rank="4"
-              show-guild
-            />
+            <template v-if="isSearching">
+              <!-- 搜索态：不展示前三领奖台，用普通列表展示命中结果，并显示其真实全局排名 -->
+              <RankingList
+                v-if="records.length"
+                :records="records"
+                value-label="SR值"
+                show-guild
+              />
+            </template>
+            <template v-else>
+              <PodiumBoard :records="podiumRecords" show-guild />
+              <RankingList
+                v-if="listRecords.length"
+                :records="listRecords"
+                value-label="SR值"
+                :start-rank="4"
+                show-guild
+              />
+            </template>
           </YunListStatus>
         </view>
       </scroll-view>

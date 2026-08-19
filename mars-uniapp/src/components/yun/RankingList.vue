@@ -27,7 +27,7 @@ withDefaults(defineProps<{
     :class="[`ranking-list-${variant}`, { 'ranking-list-no-rank': !showRank }]"
   >
     <view v-for="(record, index) in records" :key="record.id" class="ranking-row">
-      <RankBadge v-if="showRank" :rank="startRank + index" />
+      <RankBadge v-if="showRank" :rank="record.rank ?? startRank + index" />
       <AnchorAvatar :src="record.avatar" :name="record.name" :show-pulse="false" size="sm" />
       <view class="ranking-main">
         <view class="ranking-name-line">

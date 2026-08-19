@@ -17,7 +17,6 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -32,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -78,6 +78,13 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     private final ExecutorService syncExecutor = Executors.newSingleThreadExecutor();
 
     /**
+     * 全局同步互斥锁：串行化所有写库同步入口（手动同步、AUTO 定时任务、异步全量同步）。
+     * 避免它们在并发处理同一批“今日/本月”数据时互相竞争，产生间隙锁/行锁等待超时。
+     * 公平锁保证先到先得，避免线程饥饿。
+     */
+    private final ReentrantLock syncLock = new ReentrantLock(true);
+
+    /**
      * 异步同步任务进度缓存（taskId -> progress）。
      */
     private final Map<String, YunSyncProgress> syncProgressMap = new ConcurrentHashMap<>();
@@ -88,43 +95,68 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncAnchor(Long id, String triggerType) {
         return syncAnchor(id, triggerType, null);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncAnchor(Long id, String triggerType, String dataSource) {
-        YunAnchor anchor = anchorMapper.selectById(id);
-        if (anchor == null) {
-            throw new BusinessException("主播不存在");
+        syncLock.lock();
+        try {
+            YunAnchor anchor = anchorMapper.selectById(id);
+            if (anchor == null) {
+                throw new BusinessException("主播不存在");
+            }
+            return syncAnchors(List.of(anchor), currentPeriods(true, true, true), triggerType, dataSource, false);
+        } finally {
+            syncLock.unlock();
         }
-        return syncAnchors(List.of(anchor), currentPeriods(true, true, true), triggerType, dataSource, false);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncAll(String triggerType) {
         return syncAll(triggerType, null);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncAll(String triggerType, String dataSource) {
-        return syncAnchors(enabledAnchors(), currentPeriods(true, true, true), triggerType, dataSource, true);
+        syncLock.lock();
+        try {
+            return syncAnchors(enabledAnchors(), currentPeriods(true, true, true), triggerType, dataSource, true);
+        } finally {
+            syncLock.unlock();
+        }
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncTodayAndMonth(String triggerType) {
         return syncTodayAndMonth(triggerType, null);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public YunSyncResult syncTodayAndMonth(String triggerType, String dataSource) {
-        return syncAnchors(enabledAnchors(), currentPeriods(true, false, true), triggerType, dataSource, false);
+        syncLock.lock();
+        try {
+            return syncAnchors(enabledAnchors(), currentPeriods(true, false, true), triggerType, dataSource, false);
+        } finally {
+            syncLock.unlock();
+        }
+    }
+
+    @Override
+    public YunSyncResult syncYesterday(String triggerType) {
+        return syncYesterday(triggerType, null);
+    }
+
+    @Override
+    public YunSyncResult syncYesterday(String triggerType, String dataSource) {
+        syncLock.lock();
+        try {
+            // 仅同步昨日：昨日已结束，此时拉取的是完整自然日终值，补齐日末缺失的尾部数据
+            return syncAnchors(enabledAnchors(), currentPeriods(false, true, false), triggerType, dataSource, false);
+        } finally {
+            syncLock.unlock();
+        }
     }
 
     private List<YunAnchor> enabledAnchors() {
@@ -153,55 +185,60 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         syncProgressMap.put(progress.getTaskId(), progress);
 
         syncExecutor.submit(() -> {
-            YunSyncResult result = new YunSyncResult();
-            result.setStartedAt(progress.getStartedAt());
-            result.setTotalCount(progress.getTotalCount());
+            syncLock.lock();
             try {
-                for (YunAnchor anchor : anchors) {
-                    progress.setCurrentAnchorId(anchor.getAnchorId());
-                    if (isManualSource(anchor.getDataSource())) {
+                YunSyncResult result = new YunSyncResult();
+                result.setStartedAt(progress.getStartedAt());
+                result.setTotalCount(progress.getTotalCount());
+                try {
+                    for (YunAnchor anchor : anchors) {
+                        progress.setCurrentAnchorId(anchor.getAnchorId());
+                        if (isManualSource(anchor.getDataSource())) {
+                            for (SyncPeriod period : periods) {
+                                progress.setCurrentPeriodKey(period.periodKey());
+                                progress.setCompletedCount(progress.getCompletedCount() + 1);
+                            }
+                            String skipMsg = "主播[" + anchor.getAnchorId() + "]为手动维护，未设置数据源，已跳过";
+                            if (result.getErrors().size() < 20) {
+                                result.getErrors().add(skipMsg);
+                            }
+                            result.setFailCount(result.getFailCount() + periods.size());
+                            progress.setSuccessCount(result.getSuccessCount());
+                            progress.setFailCount(result.getFailCount());
+                            progress.setErrors(new ArrayList<>(result.getErrors()));
+                            continue;
+                        }
+                        boolean anchorFailed = false;
                         for (SyncPeriod period : periods) {
                             progress.setCurrentPeriodKey(period.periodKey());
+                            boolean success = syncOne(anchor, period, dataSource, triggerType, result);
+                            progress.setSuccessCount(result.getSuccessCount());
+                            progress.setFailCount(result.getFailCount());
                             progress.setCompletedCount(progress.getCompletedCount() + 1);
+                            if (!success) {
+                                anchorFailed = true;
+                                appendBatchAbortMessage(result);
+                            }
+                            progress.setErrors(new ArrayList<>(result.getErrors()));
+                            if (!success) {
+                                break;
+                            }
                         }
-                        String skipMsg = "主播[" + anchor.getAnchorId() + "]为手动维护，未设置数据源，已跳过";
-                        if (result.getErrors().size() < 20) {
-                            result.getErrors().add(skipMsg);
-                        }
-                        result.setFailCount(result.getFailCount() + periods.size());
-                        progress.setSuccessCount(result.getSuccessCount());
-                        progress.setFailCount(result.getFailCount());
-                        progress.setErrors(new ArrayList<>(result.getErrors()));
-                        continue;
-                    }
-                    boolean anchorFailed = false;
-                    for (SyncPeriod period : periods) {
-                        progress.setCurrentPeriodKey(period.periodKey());
-                        boolean success = syncOne(anchor, period, dataSource, triggerType, result);
-                        progress.setSuccessCount(result.getSuccessCount());
-                        progress.setFailCount(result.getFailCount());
-                        progress.setCompletedCount(progress.getCompletedCount() + 1);
-                        if (!success) {
-                            anchorFailed = true;
-                            appendBatchAbortMessage(result);
-                        }
-                        progress.setErrors(new ArrayList<>(result.getErrors()));
-                        if (!success) {
+                        if (anchorFailed) {
                             break;
                         }
                     }
-                    if (anchorFailed) {
-                        break;
-                    }
+                    result.setEndedAt(LocalDateTime.now());
+                    saveLog(result, periods, triggerType);
+                    progress.setErrors(new ArrayList<>(result.getErrors()));
+                } catch (Exception e) {
+                    log.error("异步同步全部主播失败", e);
+                } finally {
+                    progress.setRunning(false);
+                    progress.setEndedAt(LocalDateTime.now());
                 }
-                result.setEndedAt(LocalDateTime.now());
-                saveLog(result, periods, triggerType);
-                progress.setErrors(new ArrayList<>(result.getErrors()));
-            } catch (Exception e) {
-                log.error("异步同步全部主播失败", e);
             } finally {
-                progress.setRunning(false);
-                progress.setEndedAt(LocalDateTime.now());
+                syncLock.unlock();
             }
         });
         return progress;
@@ -322,19 +359,10 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
     }
 
     private void saveStat(YunAnchor anchor, BojiangAnchorInfo info, SyncPeriod period, String sourceCode) {
-        LambdaQueryWrapper<YunAnchorGiftStat> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(YunAnchorGiftStat::getAnchorId, anchor.getAnchorId())
-                .eq(YunAnchorGiftStat::getPeriodType, period.periodType())
-                .eq(YunAnchorGiftStat::getPeriodKey, period.periodKey());
-        YunAnchorGiftStat stat = giftStatMapper.selectOne(wrapper);
-        boolean create = stat == null;
-        if (create) {
-            stat = new YunAnchorGiftStat();
-            stat.setAnchorId(anchor.getAnchorId());
-            stat.setPeriodType(period.periodType());
-            stat.setPeriodKey(period.periodKey());
-        }
-
+        YunAnchorGiftStat stat = new YunAnchorGiftStat();
+        stat.setAnchorId(anchor.getAnchorId());
+        stat.setPeriodType(period.periodType());
+        stat.setPeriodKey(period.periodKey());
         stat.setRoomId(valueOrFallback(info.getRoomId(), anchor.getRoomId()));
         stat.setExternalRankNo(info.getExternalRankNo());
         stat.setGiftTotalValue(info.getGiftTotalValue());
@@ -354,12 +382,9 @@ public class YunAnchorGiftSyncServiceImpl implements YunAnchorGiftSyncService {
         stat.setSourceUpdateTime(valueOrFallback(info.getSourceUpdateTime(), sourceCode));
         stat.setRawJson(info.getRawJson());
         stat.setSyncedAt(LocalDateTime.now());
-
-        if (create) {
-            giftStatMapper.insert(stat);
-        } else {
-            giftStatMapper.updateById(stat);
-        }
+        // 原子 upsert：基于唯一键 uk_anchor_period，不存在则插入、存在则更新。
+        // 单语句无间隙锁、也不需跨网络持有事务，避免“先查再插”在高并发/长事务下的锁等待超时。
+        giftStatMapper.upsert(stat);
     }
 
     private void updateAnchorProfile(YunAnchor anchor, BojiangAnchorInfo info, String sourceCode) {
