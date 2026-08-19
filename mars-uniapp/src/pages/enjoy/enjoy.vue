@@ -172,7 +172,8 @@ function handleListScroll(event: { detail?: { scrollTop?: number } }) {
 }
 
 async function handleBackTop() {
-  listScrollTop.value = currentListScrollTop
+  // 必须先设置一个非零值才能触发滚动，否则值不变不会生效
+  listScrollTop.value = 1
   await nextTick()
   listScrollTop.value = 0
 }

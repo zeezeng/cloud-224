@@ -152,7 +152,8 @@ function handleListScroll(event: { detail?: { scrollTop?: number } }) {
 }
 
 async function handleBackTop() {
-  listScrollTop.value = currentListScrollTop
+  // 必须先设置一个非零值才能触发滚动，否则值不变不会生效
+  listScrollTop.value = 1
   await nextTick()
   listScrollTop.value = 0
 }
@@ -266,10 +267,12 @@ onLoad(() => {
 }
 
 .vault-history-scroll {
-  position: relative;
+  position: absolute;
+  top: var(--ephone-transparent-nav-content-top, calc(env(safe-area-inset-top) + 88rpx));
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
-  width: 100%;
-  height: 100%;
 }
 
 .vault-history-content {
@@ -277,10 +280,7 @@ onLoad(() => {
   max-width: 960rpx;
   min-height: 100%;
   margin: 0 auto;
-  padding: calc(
-      var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 36rpx
-    )
-    40rpx 160rpx;
+  padding: 36rpx 40rpx 160rpx;
 }
 
 .vault-history-summary {

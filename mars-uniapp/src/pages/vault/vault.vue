@@ -168,7 +168,8 @@ function handleListScroll(event: { detail?: { scrollTop?: number } }) {
 }
 
 async function handleBackTop() {
-  listScrollTop.value = currentListScrollTop
+  // 必须先设置一个非零值才能触发滚动，否则值不变不会生效
+  listScrollTop.value = 1
   await nextTick()
   listScrollTop.value = 0
 }
@@ -316,7 +317,7 @@ onLoad(() => {
 .vault-list-content {
   max-width: 960rpx;
   margin: 0 auto;
-  padding: 8rpx 40rpx 20rpx;
+  padding: 8rpx 32rpx 24rpx;
 }
 
 .vault-history-link {

@@ -227,10 +227,12 @@ function previewQrcode() {
 }
 
 .feedback-scroll {
-  position: relative;
+  position: absolute;
+  top: var(--ephone-transparent-nav-content-top, calc(env(safe-area-inset-top) + 88rpx));
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
-  width: 100%;
-  height: 100%;
 }
 
 .feedback-content {
@@ -238,16 +240,12 @@ function previewQrcode() {
   max-width: 960rpx;
   min-height: 100%;
   margin: 0 auto;
-  padding: calc(
-      var(--ephone-transparent-nav-top, env(safe-area-inset-top)) + var(--ephone-transparent-nav-height, 88rpx) + 34rpx
-    )
-    36rpx 190rpx;
+  padding: 34rpx 36rpx 190rpx;
 }
 
 .feedback-card {
   box-sizing: border-box;
   width: 100%;
-  margin-top: 34rpx;
   padding: 18rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.08);
   border-radius: 28rpx;
@@ -272,7 +270,9 @@ function previewQrcode() {
   color: rgba(255, 255, 255, 0.52);
   font-size: 23rpx;
   font-weight: 800;
-  transition: opacity 0.2s ease, background 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    background 0.2s ease;
 }
 
 .type-tab-active {

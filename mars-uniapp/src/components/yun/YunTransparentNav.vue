@@ -1,6 +1,12 @@
 <script setup lang="ts">
 type FallbackType = 'navigateTo' | 'redirectTo' | 'switchTab'
 
+interface WindowMetrics {
+  statusBarHeight?: number
+  windowWidth?: number
+  screenWidth?: number
+}
+
 const props = withDefaults(defineProps<{
   title?: string
   fallbackUrl?: string
@@ -17,16 +23,46 @@ const emit = defineEmits<{
 
 const navStyle = ref<Record<string, string>>({})
 
+function getWindowMetrics(): WindowMetrics {
+  const uniApi = uni as unknown as {
+    getWindowInfo?: () => WindowMetrics
+    getSystemInfoSync: () => WindowMetrics
+  }
+
+  if (typeof uniApi.getWindowInfo === 'function') {
+    return uniApi.getWindowInfo()
+  }
+
+  return uniApi.getSystemInfoSync()
+}
+
 function syncNavLayout() {
   // #ifdef MP-WEIXIN
   try {
     const menu = uni.getMenuButtonBoundingClientRect()
-    const system = uni.getSystemInfoSync()
-    if (menu?.top && menu.height && system.windowWidth) {
+    const windowMetrics = getWindowMetrics()
+    const statusBarHeight = Math.max(0, Number(windowMetrics.statusBarHeight || 0))
+    const windowWidth = Number(windowMetrics.windowWidth || windowMetrics.screenWidth || 0)
+    const menuTop = Number(menu?.top || 0)
+    const menuHeight = Number(menu?.height || 0)
+    const menuLeft = Number(menu?.left || 0)
+
+    if (menuTop && menuHeight && windowWidth) {
+      const menuGap = Math.max(0, menuTop - statusBarHeight)
+      const navBarHeight = menuGap * 2 + menuHeight
+      const totalHeight = statusBarHeight + navBarHeight
+      const rightSpace = menuLeft > 0 ? Math.ceil(windowWidth - menuLeft + 12) : 40
+
       navStyle.value = {
-        '--ephone-transparent-nav-top': `${menu.top}px`,
-        '--ephone-transparent-nav-height': `${menu.height}px`,
-        '--ephone-transparent-nav-right-space': `${Math.ceil(system.windowWidth - menu.left + 12)}px`,
+        '--ephone-transparent-nav-status-height': `${statusBarHeight}px`,
+        '--ephone-transparent-nav-menu-top': `${menuTop}px`,
+        '--ephone-transparent-nav-menu-height': `${menuHeight}px`,
+        '--ephone-transparent-nav-bar-height': `${navBarHeight}px`,
+        '--ephone-transparent-nav-total-height': `${totalHeight}px`,
+        '--ephone-transparent-nav-content-top': `${totalHeight}px`,
+        '--ephone-transparent-nav-right-space': `${rightSpace}px`,
+        '--ephone-transparent-nav-top': '0px',
+        '--ephone-transparent-nav-height': `${totalHeight}px`,
       }
       emit('layout', navStyle.value)
       return
@@ -74,31 +110,43 @@ onMounted(syncNavLayout)
 
 <template>
   <view class="ephone-transparent-nav" :style="navStyle">
-    <button class="ephone-nav-back" hover-class="ephone-nav-back-hover" @tap="handleBack">
-      <view class="ephone-nav-back-inner">
-        <view class="ephone-nav-back-icon" />
+    <view class="ephone-nav-row">
+      <button class="ephone-nav-back" hover-class="ephone-nav-back-hover" @tap="handleBack">
+        <view class="ephone-nav-back-inner">
+          <view class="ephone-nav-back-icon" />
+        </view>
+      </button>
+      <view v-if="title" class="ephone-nav-title">
+        {{ title }}
       </view>
-    </button>
-    <view v-if="title" class="ephone-nav-title">
-      {{ title }}
+      <slot name="right" />
     </view>
-    <slot name="right" />
   </view>
 </template>
 
 <style scoped lang="scss">
 .ephone-transparent-nav {
   position: fixed;
-  top: var(--ephone-transparent-nav-top, env(safe-area-inset-top));
+  top: 0;
   left: 0;
   right: 0;
   z-index: 99;
+  box-sizing: border-box;
+  height: var(--ephone-transparent-nav-height, calc(env(safe-area-inset-top) + 88rpx));
+  background: transparent;
+  pointer-events: none;
+}
+
+.ephone-nav-row {
+  position: absolute;
+  top: var(--ephone-transparent-nav-menu-top, env(safe-area-inset-top));
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  height: var(--ephone-transparent-nav-height, 88rpx);
+  height: var(--ephone-transparent-nav-menu-height, 88rpx);
   padding: 0 var(--ephone-transparent-nav-right-space, 40rpx) 0 32rpx;
-  background: transparent;
   pointer-events: none;
 }
 
@@ -106,8 +154,8 @@ onMounted(syncNavLayout)
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 74rpx;
-  height: 74rpx;
+  width: var(--ephone-transparent-nav-menu-height, 74rpx);
+  height: var(--ephone-transparent-nav-menu-height, 74rpx);
   padding: 0;
   border: 1rpx solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
@@ -129,8 +177,8 @@ onMounted(syncNavLayout)
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54rpx;
-  height: 54rpx;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
   box-shadow: none;
