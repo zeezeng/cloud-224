@@ -185,6 +185,7 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         season.setStartTime(source.getStartTime());
         season.setEndTime(source.getEndTime());
         season.setSort(source.getSort());
+        season.setTotalBonus(source.getTotalBonus());
         season.setRemark(trim(firstText(request == null ? null : request.getRemark(), source.getRemark()), 500));
         normalizeAndValidateSeason(season, true);
         this.save(season);
@@ -550,6 +551,12 @@ public class YunSeasonServiceImpl extends ServiceImpl<YunSeasonMapper, YunSeason
         }
         if (season.getSort() == null) {
             season.setSort(0);
+        }
+        if (season.getTotalBonus() == null) {
+            season.setTotalBonus(BigDecimal.ZERO);
+        }
+        if (season.getTotalBonus().signum() < 0) {
+            throw new BusinessException("赛季总奖金不能为负数");
         }
         LambdaQueryWrapper<YunSeason> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(YunSeason::getSeasonCode, season.getSeasonCode());

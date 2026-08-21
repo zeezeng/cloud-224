@@ -104,6 +104,7 @@ export default defineConfig({
     'i-carbon-chat',
     'i-carbon-send',
     'i-carbon-qr-code',
+    'i-carbon-bottles-container',
   ],
   rules: [
     [

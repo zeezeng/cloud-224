@@ -17,6 +17,7 @@ export interface AppSeason {
   startTime?: string
   endTime?: string
   sort?: number
+  totalBonus?: number | string
   memberCount?: number
   activeCount?: number
   eliminatedCount?: number

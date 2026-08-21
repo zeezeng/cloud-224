@@ -156,6 +156,9 @@
           <n-form-item-gi label="排序" path="sort">
             <n-input-number v-model:value="seasonFormData.sort" :min="0" :step="1" style="width: 100%" />
           </n-form-item-gi>
+          <n-form-item-gi label="总奖金(元)" path="totalBonus">
+            <n-input-number v-model:value="seasonFormData.totalBonus" :min="0" :precision="2" :step="1000" placeholder="0.00" style="width: 100%" />
+          </n-form-item-gi>
           <n-form-item-gi label="开始时间" path="startTime">
             <n-date-picker v-model:value="seasonFormDate.startTime" type="datetime" clearable style="width: 100%" />
           </n-form-item-gi>
@@ -493,6 +496,7 @@ const seasonFormData = reactive<YunSeason>({
   status: 1,
   appDisplay: 0,
   sort: 0,
+  totalBonus: 0,
   remark: '',
 })
 const seasonFormDate = reactive<{ startTime: number | null; endTime: number | null }>({
@@ -610,6 +614,15 @@ const seasonColumns: DataTableColumns<YunSeasonPageRow> = [
   { title: '成员', key: 'memberCount', width: 90 },
   { title: '队长', key: 'captainCount', width: 90 },
   { title: '淘汰', key: 'eliminatedCount', width: 90 },
+  {
+    title: '总奖金(元)',
+    key: 'totalBonus',
+    width: 120,
+    render(row) {
+      const value = Number(row.totalBonus || 0)
+      return h('span', {}, value > 0 ? value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-')
+    },
+  },
   {
     title: '状态',
     key: 'status',
@@ -792,6 +805,7 @@ function openSeasonModal(row?: YunSeasonPageRow) {
     status: row?.status ?? 1,
     appDisplay: row?.appDisplay ?? 0,
     sort: row?.sort ?? 0,
+    totalBonus: Number(row?.totalBonus || 0),
     remark: row?.remark || '',
   })
   seasonFormDate.startTime = row?.startTime ? new Date(row.startTime).getTime() : null
@@ -808,6 +822,7 @@ function resetSeasonForm() {
     status: 1,
     appDisplay: 0,
     sort: 0,
+    totalBonus: 0,
     remark: '',
   })
   seasonFormDate.startTime = null
@@ -1077,6 +1092,7 @@ async function handleSeasonSubmit() {
       seasonName: seasonFormData.seasonName?.trim() || '',
       coverImageUrl: seasonFormData.coverImageUrl?.trim() || '',
       remark: seasonFormData.remark?.trim() || '',
+      totalBonus: Number(seasonFormData.totalBonus || 0),
       startTime: normalizeDate(seasonFormDate.startTime),
       endTime: normalizeDate(seasonFormDate.endTime),
     }

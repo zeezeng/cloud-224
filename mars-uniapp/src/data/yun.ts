@@ -16,6 +16,8 @@ export interface EphoneQuickAction {
   title: string
   icon: string
   accent: string
+  /** 跳转目标：页面路径（如 /pages/enjoy/enjoy）或 http(s) 外链 */
+  target?: string
 }
 
 export interface EphoneRankRecord {
@@ -134,10 +136,10 @@ export const ephoneAnchors: EphoneAnchor[] = [
 ]
 
 export const homeQuickActions: EphoneQuickAction[] = [
-  { title: '乐享值查询', icon: 'i-carbon-star-filled', accent: '#f2b6cc' },
-  { title: '流水查询', icon: 'i-carbon-chart-line', accent: '#d9c7e8' },
-  { title: '主播金库', icon: 'i-carbon-box', accent: '#e9abc7' },
-  { title: '数据日历', icon: 'i-carbon-calendar', accent: '#ddd2d8' },
+  { title: '乐享值查询', icon: 'i-carbon-star-filled', accent: '#f26ba8', target: '/pages/enjoy/enjoy' },
+  { title: '主播金库', icon: 'i-carbon-box', accent: '#4aa8f0', target: '/pages/vault/vault' },
+  { title: '泡吧', icon: 'i-carbon-bottles-container', accent: '#9a7cf0', target: '/pages/bubble/bubble' },
+  { title: '赛季', icon: 'i-carbon-calendar', accent: '#ff9e54', target: '/pages/season/season' },
 ]
 
 export const anchorFilters = ['全部', '直播中', '女团', '男团', '本月Top']

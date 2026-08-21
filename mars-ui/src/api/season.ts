@@ -15,6 +15,7 @@ export interface YunSeason {
   startTime?: string
   endTime?: string
   sort: number
+  totalBonus?: number | string
   remark?: string
   createTime?: string
   updateTime?: string

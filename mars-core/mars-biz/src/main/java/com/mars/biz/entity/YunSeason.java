@@ -5,6 +5,7 @@ import com.mars.common.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -54,6 +55,11 @@ public class YunSeason extends BaseEntity {
      * 排序值，越小越靠前
      */
     private Integer sort;
+
+    /**
+     * 赛季总奖金(元)，客户端展示用，仅供参考
+     */
+    private BigDecimal totalBonus;
 
     /**
      * 备注

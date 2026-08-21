@@ -5,7 +5,7 @@ const props = withDefaults(defineProps<{
   modelValue?: string
   placeholder: string
   showButton?: boolean
-  variant?: 'default' | 'enjoy' | 'vault'
+  variant?: 'default' | 'enjoy' | 'vault' | 'bubble'
   top?: string
   spacerHeight?: string
 }>(), {

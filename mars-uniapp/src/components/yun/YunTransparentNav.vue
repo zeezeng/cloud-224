@@ -130,7 +130,7 @@ onMounted(syncNavLayout)
   top: 0;
   left: 0;
   right: 0;
-  z-index: 99;
+  z-index: 820;
   box-sizing: border-box;
   height: var(--ephone-transparent-nav-height, calc(env(safe-area-inset-top) + 88rpx));
   background: transparent;

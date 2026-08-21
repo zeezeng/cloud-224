@@ -3,13 +3,12 @@ import type { HomeBanner } from '@/api/banner'
 import { getHomeBannerList, resolveBannerImageUrl } from '@/api/banner'
 import type { HomeNotice } from '@/api/notice'
 import { getHomeNoticeList, getPopupNoticeList } from '@/api/notice'
+import type { EphoneQuickAction, EphoneRankRecord } from '@/data/yun'
+import { homeQuickActions } from '@/data/yun'
 import { getAnchorGiftRanking } from '@/api/ranking'
-import type { EphoneRankRecord } from '@/data/yun'
-import { formatClockTime, formatCompactNumber } from '@/utils/yun'
-import YunPanel from '@/components/yun/YunPanel.vue'
+import QuickGrid from '@/components/yun/QuickGrid.vue'
+import RankingList from '@/components/yun/RankingList.vue'
 import YunPage from '@/components/yun/YunPage.vue'
-import RankBadge from '@/components/yun/RankBadge.vue'
-import AnchorAvatar from '@/components/yun/AnchorAvatar.vue'
 import AddToDesktopTip from '@/components/yun/AddToDesktopTip.vue'
 import { useRefreshLimit } from '@/hooks/useRefreshLimit'
 
@@ -27,16 +26,14 @@ definePage({
   },
 })
 
-const todayRanking = ref<EphoneRankRecord[]>([])
-const todayRankingUpdatedAt = ref('')
 const homeNotices = ref<HomeNotice[]>([])
 const fallbackNoticeText = '您好，欢迎来到224！'
 const popupVisible = ref(false)
 const popupNotice = ref<HomeNotice | null>(null)
 
-const rankingUpdatedText = computed(() => {
-  return `数据截止时间：${formatClockTime(todayRankingUpdatedAt.value) || '--:--:--'}`
-})
+/** 首页主播 Top5 排行（今日榜单） */
+const homeTopRecords = ref<EphoneRankRecord[]>([])
+const homeRankingLoaded = ref(false)
 
 const homeNoticeTexts = computed(() => {
   const list = homeNotices.value
@@ -63,7 +60,7 @@ function handleRefresh() {
     return
   }
   refreshing.value = true
-  Promise.all([loadHomeBanners(), loadHomeNotices(), loadTodayRanking()]).finally(() => {
+  Promise.all([loadHomeBanners(), loadHomeNotices(), loadHomeTopRanking()]).finally(() => {
     refreshing.value = false
   })
 }
@@ -86,20 +83,26 @@ const tabbarPages = new Set([
 onMounted(() => {
   loadHomeBanners()
   loadHomeNotices()
-  loadTodayRanking()
   checkPopupNotice()
+  loadHomeTopRanking()
 })
 
-async function loadTodayRanking() {
+async function loadHomeTopRanking() {
   try {
-    const result = await getAnchorGiftRanking({ period: 'today', page: 1, pageSize: 10 })
-    todayRanking.value = Array.isArray(result.records) ? result.records : []
-    todayRankingUpdatedAt.value = result.latestSyncTime || ''
+    const result = await getAnchorGiftRanking({ period: 'today', page: 1, pageSize: 5 })
+    homeTopRecords.value = result.records
   }
   catch (error) {
-    console.error('首页今日排行加载失败', error)
-    todayRanking.value = []
+    console.error('首页主播排行加载失败', error)
+    homeTopRecords.value = []
   }
+  finally {
+    homeRankingLoaded.value = true
+  }
+}
+
+function goRanking() {
+  uni.switchTab({ url: '/pages/ranking/ranking' })
 }
 
 async function loadHomeBanners() {
@@ -236,6 +239,26 @@ function handleBannerTap(banner: HomeBanner) {
   }
 }
 
+function handleQuickActionTap(action: EphoneQuickAction) {
+  const target = String(action.target || '').trim()
+  if (!target) {
+    return
+  }
+
+  // 外链：H5 新窗口打开，小程序走 webview
+  if (/^https?:\/\//i.test(target)) {
+    openWebUrl(target)
+    return
+  }
+
+  const path = normalizePagePath(target)
+  if (!path) {
+    return
+  }
+  const navigate = isTabbarPage(path) ? uni.switchTab : uni.navigateTo
+  navigate({ url: path })
+}
+
 function openFeedback() {
   uni.navigateTo({
     url: '/pages/feedback/feedback',
@@ -308,32 +331,28 @@ function openFeedback() {
             </view>
           </view>
 
-          <YunPanel title="主播今日排行" icon="i-carbon-trophy-filled" :action="rankingUpdatedText">
-            <view class="home-rank-list">
-              <view v-for="(anchor, index) in todayRanking" :key="anchor.id" class="home-rank-row">
-                <RankBadge :rank="index + 1" />
-                <AnchorAvatar
-                  class="home-rank-avatar"
-                  :src="anchor.avatar"
-                  :name="anchor.name"
-                  :show-pulse="false"
-                  size="sm"
-                />
-                <view class="home-rank-name">
-                  {{ anchor.name }}
-                </view>
-                <view class="home-rank-value">
-                  <view class="i-carbon-fire" />
-                  {{ formatCompactNumber(anchor.value) }}
-                </view>
+          <view class="home-rank-section">
+            <view class="section-header">
+              <view class="section-header-left">
+                <view class="i-carbon-trophy section-icon" />
+                <text class="section-title">主播 Top 5</text>
               </view>
-              <view v-if="todayRanking.length === 0" class="home-rank-empty">
-                暂无排行数据，请先同步主播数据
-              </view>
+              <text class="section-more" @tap="goRanking">查看全部 ›</text>
             </view>
-          </YunPanel>
 
-          <!-- <QuickGrid :items="homeQuickActions" /> -->
+            <RankingList
+              v-if="homeTopRecords.length > 0"
+              :records="homeTopRecords"
+              :show-subtitle="false"
+            />
+            <view v-else class="home-rank-empty">
+              <text>主播排行数据加载中…</text>
+            </view>
+          </view>
+
+          <view class="home-quick-card">
+            <QuickGrid :items="homeQuickActions" @tap="handleQuickActionTap" />
+          </view>
         </view>
       </scroll-view>
     </view>
@@ -386,13 +405,20 @@ function openFeedback() {
 
 .home-banner-frame {
   position: relative;
+  box-sizing: border-box;
   width: 100%;
   margin-top: 26rpx;
   padding-top: 50%;
   overflow: hidden;
   border: 1rpx solid rgba(255, 255, 255, 0.1);
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 32rpx;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 62%), rgba(120, 100, 150, 0.08);
+  box-shadow:
+    0 18rpx 54rpx rgba(0, 0, 0, 0.35),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
 }
 
 .home-banner-swiper {
@@ -416,12 +442,19 @@ function openFeedback() {
 .home-notice {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   width: 100%;
-  min-height: 70rpx;
+  min-height: 84rpx;
   margin-top: 24rpx;
   padding: 0 24rpx;
-  border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.05);
+  border: 1rpx solid rgba(255, 255, 255, 0.09);
+  border-radius: 26rpx;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 70%);
+  box-shadow:
+    0 14rpx 40rpx rgba(0, 0, 0, 0.22),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24rpx);
+  -webkit-backdrop-filter: blur(24rpx);
 }
 
 .notice-icon,
@@ -496,7 +529,9 @@ function openFeedback() {
   border: 1rpx solid rgba(255, 255, 255, 0.14);
   border-radius: 999rpx;
   background: rgba(24, 20, 28, 0.86);
-  box-shadow: 0 12rpx 34rpx rgba(0, 0, 0, 0.34), 0 0 0 1rpx rgba(233, 138, 182, 0.08) inset;
+  box-shadow:
+    0 12rpx 34rpx rgba(0, 0, 0, 0.34),
+    0 0 0 1rpx rgba(233, 138, 182, 0.08) inset;
   backdrop-filter: blur(18rpx);
   -webkit-backdrop-filter: blur(18rpx);
 }
@@ -506,63 +541,110 @@ function openFeedback() {
   font-size: 36rpx;
 }
 
-.home-rank-list {
-  width: 100%;
-  margin-top: 14rpx;
+/* ===== 首页主播 Top5 排行（玻璃卡片） ===== */
+.home-rank-section {
+  box-sizing: border-box;
+  margin-top: 28rpx;
+  padding: 28rpx 24rpx 10rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.09);
+  border-radius: 32rpx;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 72%);
+  box-shadow:
+    0 16rpx 48rpx rgba(0, 0, 0, 0.24),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24rpx);
+  -webkit-backdrop-filter: blur(24rpx);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.section-icon {
+  color: var(--ephone-primary-soft);
+  font-size: 34rpx;
+}
+
+.section-title {
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 850;
+}
+
+.section-more {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+/* 列表在玻璃卡内：透明底、细分隔线 */
+:deep(.home-rank-section .ranking-list) {
+  margin-top: 18rpx;
   overflow: hidden;
   border-radius: 24rpx;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.16);
 }
 
-.home-rank-row {
-  display: grid;
-  grid-template-columns: 52rpx 66rpx minmax(0, 1fr) 190rpx;
-  gap: 14rpx;
-  align-items: center;
-  min-height: 92rpx;
-  padding: 14rpx 18rpx;
-  border-bottom: 1rpx solid rgba(255, 255, 255, 0.06);
+:deep(.home-rank-section .ranking-row) {
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.05);
 }
 
-.home-rank-row:last-child {
+:deep(.home-rank-section .ranking-row:last-child) {
   border-bottom: 0;
 }
 
 .home-rank-empty {
-  padding: 40rpx 0;
-  color: rgba(255, 255, 255, 0.5);
+  margin-top: 18rpx;
+  padding: 34rpx 0;
+  border-radius: 24rpx;
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 26rpx;
   text-align: center;
 }
 
-.home-rank-name {
-  overflow: hidden;
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* ===== 快捷入口（玻璃卡片） ===== */
+.home-quick-card {
+  box-sizing: border-box;
+  margin-top: 24rpx;
+  padding: 28rpx 24rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.09);
+  border-radius: 32rpx;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 72%);
+  box-shadow:
+    0 16rpx 48rpx rgba(0, 0, 0, 0.24),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24rpx);
+  -webkit-backdrop-filter: blur(24rpx);
 }
 
-.home-rank-value {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8rpx;
-  color: var(--ephone-primary-soft);
-  font-size: 34rpx;
-  font-weight: 900;
-  line-height: 1;
+:deep(.home-quick-card .quick-grid) {
+  margin-top: 0;
 }
 
-.home-rank-value .i-carbon-fire {
-  flex-shrink: 0;
-  font-size: 32rpx;
+/* 每格独立玻璃格 + 保留渐变圆底图标 */
+:deep(.home-quick-card .quick-item) {
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.07),
+    0 10rpx 28rpx rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(16rpx);
+  -webkit-backdrop-filter: blur(16rpx);
 }
 
-.home-rank-avatar {
-  width: 62rpx;
-  height: 62rpx;
+:deep(.home-quick-card .quick-item--active) {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @keyframes notice-marquee {

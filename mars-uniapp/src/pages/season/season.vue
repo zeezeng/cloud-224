@@ -6,6 +6,7 @@ import SeasonAnchorCard from '@/components/yun/SeasonAnchorCard.vue'
 import YunListStatus from '@/components/yun/YunListStatus.vue'
 import YunPage from '@/components/yun/YunPage.vue'
 import { useRefreshLimit } from '@/hooks/useRefreshLimit'
+import { formatIntegerMoney } from '@/utils/yun'
 
 defineOptions({
   name: 'Season',
@@ -55,6 +56,10 @@ const eliminatedCount = computed(() => Number(currentSeason.value?.eliminatedCou
 const activeCount = computed(() => Number(currentSeason.value?.activeCount ?? 0))
 
 const memberCount = computed(() => Number(currentSeason.value?.memberCount ?? 0))
+
+const totalBonus = computed(() => Number(currentSeason.value?.totalBonus ?? 0))
+
+const totalBonusText = computed(() => (totalBonus.value > 0 ? formatIntegerMoney(totalBonus.value) : ''))
 
 async function loadCurrentSeason({ isPullRefresh = false } = {}) {
   const generation = ++loadGeneration
@@ -239,6 +244,12 @@ onLoad(() => {
 
 <template>
   <YunPage :title="seasonTitle" :subtitle="subtitleText">
+    <view v-if="totalBonusText" class="season-bonus">
+      <text class="season-bonus-label">总奖金</text>
+      <text class="season-bonus-value">￥{{ totalBonusText }}</text>
+      <text class="season-bonus-tip">仅供参考</text>
+    </view>
+
     <view class="season-panel">
       <view class="season-panel-num">
         <text class="season-panel-num-value">{{ memberCount }}</text>
@@ -306,6 +317,37 @@ onLoad(() => {
 </template>
 
 <style scoped lang="scss">
+.season-bonus {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+  padding: 22rpx 26rpx;
+  border: 1rpx solid rgba(255, 214, 150, 0.28);
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, rgba(255, 196, 110, 0.16), rgba(255, 150, 90, 0.08));
+}
+
+.season-bonus-label {
+  color: rgba(255, 226, 178, 0.75);
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.season-bonus-value {
+  color: #ffd166;
+  font-size: 40rpx;
+  font-weight: 900;
+  line-height: 1.1;
+  text-shadow: 0 0 24rpx rgba(255, 209, 102, 0.35);
+}
+
+.season-bonus-tip {
+  color: rgba(255, 226, 178, 0.45);
+  font-size: 21rpx;
+}
+
 .season-panel {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
